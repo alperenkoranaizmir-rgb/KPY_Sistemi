@@ -13,20 +13,22 @@ class KPYAdminSite(AdminSite):
         # -----------------------------------------------------------
         if request.user.is_superuser:
             yetkili_projeler_qs = Proje.objects.filter(aktif_mi=True)
+            yetkili_proje_idleri = yetkili_projeler_qs.values_list('id', flat=True)
         else:
-            # projects/models.py'den gelen yetki filtresini kullan
-            yetkili_projeler_qs = Proje.objects.yetkili_olanlar(request.user).filter(aktif_mi=True)
+            # --- DÜZELTME BAŞLANGICI ---
+            # 'yetkili_olanlar' metodu yerine doğrudan filtreleme yapıyoruz.
+            yetkili_proje_idleri = request.user.projeyetkisi_set.values_list('proje_id', flat=True)
+            yetkili_projeler_qs = Proje.objects.filter(id__in=yetkili_proje_idleri, aktif_mi=True)
+            # --- DÜZELTME SONU ---
             
-        # Tüm yetkili projelerin ID'leri
-        yetkili_proje_idleri = yetkili_projeler_qs.values_list('id', flat=True)
-
         # -----------------------------------------------------------
         # 2. Widget Verisi 1: 2/3 Çoğunluk Oranı (Önbellek Verisi)
         # -----------------------------------------------------------
         
         # Tüm yetkili projelerdeki cached_imza_arsa_payi'nin toplamını hesapla.
         toplam_imza_payi = yetkili_projeler_qs.aggregate(
-            toplam=Sum(Coalesce('cached_imza_arsa_payi', 0.0000)) 
+            # Not: cached_imza_arsa_payi artık 0.0000 değil, 0.00 gibi bir YÜZDE
+            toplam=Sum(Coalesce('cached_imza_arsa_payi', 0.00)) 
         )['toplam']
         
         if yetkili_projeler_qs.count() > 0 and toplam_imza_payi is not None:
@@ -60,9 +62,10 @@ class KPYAdminSite(AdminSite):
         # -----------------------------------------------------------
         
         extra_context = extra_context or {}
-        extra_context['total_imza_orani'] = total_imza_orani # Değer 0.0050 olacak
-        extra_context['bekleyen_gorev_sayisi'] = bekleyen_gorev_sayisi # Sayı 1 veya 0 olacak
-        extra_context['toplam_malik_sayisi'] = toplam_malik_sayisi # Sayı 1 olacak
+        # DÜZELTME: Artık 66.67 gibi bir yüzde ortalaması gösterilecek
+        extra_context['total_imza_orani'] = total_imza_orani 
+        extra_context['bekleyen_gorev_sayisi'] = bekleyen_gorev_sayisi 
+        extra_context['toplam_malik_sayisi'] = toplam_malik_sayisi
         
         # Orijinal AdminSite index metodunu çağırarak arayüzü döndür.
         return super().index(request, extra_context=extra_context)

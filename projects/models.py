@@ -3,33 +3,6 @@ from django.conf import settings # AUTH_USER_MODEL'i (Kullanici modelimizi) çek
 from .choices import DirencNedenleri # Yeni dosyayı import ediyoruz
 
 class Proje(models.Model):
-
-    # ... (Diğer alanlar)
-
-    # Projenin aktif/pasif durumunu belirlemek için
-    aktif_mi = models.BooleanField(default=True, verbose_name="Proje Aktif mi?")
-    
-    # Mimari Çözüm 4: Performans için Önbelleğe Alınan (Cached) Alanlar (2/3 Takibi için)
-    # Bu alanları Celery görevi otomatik olarak güncelleyecek.
-    cached_imza_arsa_payi = models.DecimalField(
-        max_digits=5,
-        # KRİTİK DÜZELTME: 2 yerine 4 yapıyoruz.
-        decimal_places=4, 
-        default=0.0000,
-        verbose_name="Önbellek: İmza Arsa Payı (%)" 
-    )
-    # Ayrıca default değerini de 4 haneli yapalım
-    # ... (Diğer alanlar aynı kalacak)
-    cached_toplam_malik_sayisi = models.PositiveIntegerField(
-        default=0,
-        verbose_name="Önbellek: Toplam Malik Sayısı"
-    )
-
-    # Tarih kayıtları
-    olusturulma_tarihi = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturulma Tarihi")
-    # ... (Diğer alanlar)
-
-
     """
     Sistemin ana konteynerı. Tüm veriler (Malik, Evrak, Bütçe) bu modele bağlanacak.
     """
@@ -45,6 +18,29 @@ class Proje(models.Model):
     # Tarih kayıtları
     olusturulma_tarihi = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturulma Tarihi")
     guncellenme_tarihi = models.DateTimeField(auto_now=True, verbose_name="Son Güncellenme")
+
+    # --- DÜZELTME BAŞLANGICI ---
+    # Mimari Çözüm 4: Performans için Önbelleğe Alınan (Cached) Alanlar (2/3 Takibi için)
+    # Bu alanları Celery görevi otomatik olarak güncelleyecek.
+    cached_imza_arsa_payi = models.DecimalField(
+        max_digits=5,
+        # KRİTİK DÜZELTME: Artık 66.67 gibi bir YÜZDE saklayacağı için 2'ye indirildi.
+        decimal_places=2, 
+        default=0.00,
+        verbose_name="Önbellek: İmza Arsa Payı (%)" 
+    )
+    cached_toplam_malik_sayisi = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Önbellek: Toplam Malik Sayısı"
+    )
+    
+    # YENİ ALAN: 2/3 hesaplamasını düzeltmek için ortak payda alanı
+    arsa_paydasi_ortak = models.PositiveIntegerField(
+        blank=True, null=True, 
+        verbose_name="Proje Ortak Arsa Paydası (Örn: 24000)",
+        help_text="2/3 hesaplaması için projedeki tüm mülklerin ortak paydası."
+    )
+    # --- DÜZELTME SONU ---
 
     def __str__(self):
         return self.proje_adi
@@ -97,8 +93,6 @@ class ProjeYetkisi(models.Model):
         unique_together = ('kullanici', 'proje')
 
 
-# ... (Proje ve ProjeYetkisi modelleri bu dosyanın üst kısmında kalacak)
-
 # -----------------------------------------------------------------
 # FAZ 2: KENTSEL DÖNÜŞÜM ÇEKİRDEK MODELLERİ
 # -----------------------------------------------------------------
@@ -127,9 +121,6 @@ class Malik(models.Model):
     # Otomatik SMS için (CRM)
     dogum_tarihi = models.DateField(blank=True, null=True, verbose_name="Doğum Tarihi")
 
-    # Süreç Takibi
-    # (Bu kısmı daha sonra 'GorusmeKaydi' modeli ile ilişkilendireceğiz)
-    
     def __str__(self):
         return f"{self.ad} {self.soyad}"
 
@@ -226,8 +217,6 @@ class Hisse(models.Model):
         default=ImzaDurumu.BEKLEMEDE,
         verbose_name="İmza Durumu"
     )
-    
-    # (Mimari Çözüm 3'ü desteklemek için 'Evrak' modeli buraya bağlanacak, şimdilik değil)
     
     def __str__(self):
         return f"{self.malik} - {self.bagimsiz_bolum.nitelik} (%{self.hisse_orani * 100}) - {self.get_durum_display()}"
@@ -345,7 +334,6 @@ class Evrak(models.Model):
         blank=True, null=True,
         verbose_name="İlgili Bağımsız Bölüm (Opsiyonel)"
     )
-    # (Daha sonra 'Taseron' modeli eklediğimizde buraya onu da ekleyeceğiz)
     
     # Evrak Bilgileri
     evrak_adi = models.CharField(max_length=255, verbose_name="Evrak Adı / Başlığı")
@@ -357,8 +345,6 @@ class Evrak(models.Model):
     )
     
     # Dosyanın kendisi
-    # Not: Dosya yükleme (FileField/ImageField) medya ayarları (MEDIA_ROOT) gerektirir.
-    # Şimdilik FileField kullanalım, ayarlarını bir sonraki adımda yapacağız.
     dosya = models.FileField(
         upload_to='evraklar/%Y/%m/%d/', # Yıl/Ay/Gün bazlı klasörleme yapar
         verbose_name="Dosya"

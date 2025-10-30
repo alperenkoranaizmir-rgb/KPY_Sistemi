@@ -28,9 +28,8 @@ def hesapla_proje_istatistikleri(proje_id):
     arsa_payi_guvenli = Coalesce(F('bagimsiz_bolum__arsa_payi'), 0)
     
     # Hesaplama: Önce (Hisse Oranı * Arsa Payı) çarpımını hesapla (Pay kısmı)
-    # Bu, (1.0 * 120) = 120.0 sonucunu vermelidir.
     pay_kismi = ExpressionWrapper(
-        hisse_oran_guvenli * arsa_payi_guvenli,
+        hisse_oran_guncel * arsa_payi_guvenli,
         output_field=DecimalField(max_digits=12, decimal_places=4)
     )
     
@@ -39,35 +38,28 @@ def hesapla_proje_istatistikleri(proje_id):
         toplam=Sum(pay_kismi)
     )['toplam'] or 0.0000
     
-    # Projedeki tüm bağımsız bölümlerin Arsa Paydası'nın toplamını bul (Örn: 24000)
-    # Bu değeri Proje modelinde tutmadığımız için, veritabanından bulmalıyız:
-    toplam_arsa_paydasi = Proje.objects.filter(id=proje_id).first().bagimsizbolum_set.aggregate(
-        toplam=Sum(Coalesce(F('arsa_paydasi'), 1))
-    )['toplam']
-    
-    # Kentsel dönüşümde tek bir ortak payda (örneğimizde 24000) olduğu varsayılır.
-    # O yüzden sadece bir kaydın paydasını alalım (veya daha güvenli bir yöntem: payda alanını Proje modelinde tutmalıydık).
-    # Şimdilik, toplam paydayı (24000) alalım:
+    # --- DÜZELTME BAŞLANGICI ---
+    # Hatalı 'Sum' sorgusu yerine, modeldeki yeni alandan ortak paydayı alıyoruz.
+    toplam_arsa_paydasi = proje.arsa_paydasi_ortak
+    # --- DÜZELTME SONU ---
     
     if toplam_arsa_paydasi is None or toplam_arsa_paydasi == 0:
         # Payda yoksa 0/0 hatası vermesin, oran 0 kalsın.
-        imza_yuzdesi_oran = 0.0000
+        imza_yuzdesi_oran = 0.00
     else:
         # Nihai Oran Hesaplaması: (Toplanan Pay) / (Toplam Payda)
-        # (Örn: 120.0 / 24000 = 0.005)
-        imza_yuzdesi_oran = toplam_imza_pay_carpimi / toplam_arsa_paydasi 
+        # KRİTİK DÜZELTME: Yüzde (%) olarak kaydetmek için 100 ile çarpıyoruz.
+        imza_yuzdesi_oran = (toplam_imza_pay_carpimi / toplam_arsa_paydasi) * 100.0
     
     # --- 3. Sonuçları Proje Modelinde Güncelleme ---
     
-    proje.cached_imza_arsa_payi = imza_yuzdesi_oran
+    proje.cached_imza_arsa_payi = imza_yuzdesi_oran # Artık 0.0050 değil, 66.67 gibi bir değer saklar
     proje.cached_toplam_malik_sayisi = toplam_malik
     
     proje.save()
     
-    return f"Proje ID {proje_id} istatistikleri güncellendi. İmza Oranı: {imza_yuzdesi_oran}. DEBUG: Toplam Pay: {toplam_imza_pay_carpimi}, Toplam Payda: {toplam_arsa_paydasi}"
+    return f"Proje ID {proje_id} istatistikleri güncellendi. İmza Oranı: {imza_yuzdesi_oran}%. DEBUG: Toplam Pay: {toplam_imza_pay_carpimi}, Toplam Payda: {toplam_arsa_paydasi}"
 
-
-# ... (dogum_gunu_sms_gonder ve toplu_istatistik_guncelle fonksiyonları aynen kalacak)
 
 @shared_task
 def toplu_istatistik_guncelle():

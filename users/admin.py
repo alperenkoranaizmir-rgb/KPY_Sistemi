@@ -7,19 +7,30 @@ from projects.models import Proje, Malik # Görevlerde kullanılacak
 
 # Proje Yetki Mixin'i ve KullaniciAdmin tanımı (Önceki Adımlardan)
 class GorevProjeYetkiMixin:
-    # ... (Bu Mixin'in içeriği aynen kalmalı)
+    # ...
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_superuser:
             return qs 
         
         yetkili_proje_idleri = request.user.projeyetkisi_set.values_list('proje_id', flat=True)
-        return qs.filter(atanan_kullanici=request.user, proje_id__in=yetkili_proje_idleri)
+        
+        # --- DÜZELTME BAŞLANGICI ---
+        # "atanan_kullanici=request.user" filtresi kaldırıldı.
+        # Artık Proje Müdürü, projesindeki tüm görevleri görebilir.
+        return qs.filter(proje_id__in=yetkili_proje_idleri)
+        # --- DÜZELTME SONU ---
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "proje" and not request.user.is_superuser:
             yetkili_proje_idleri = request.user.projeyetkisi_set.values_list('proje_id', flat=True)
             kwargs["queryset"] = db_field.related_model.objects.filter(id__in=yetkili_proje_idleri)
+        
+        # DÜZELTME: Görev oluştururken 'malik' listesi de projeye göre filtrelenmeli
+        if db_field.name == "malik" and not request.user.is_superuser:
+             yetkili_proje_idleri = request.user.projeyetkisi_set.values_list('proje_id', flat=True)
+             kwargs["queryset"] = db_field.related_model.objects.filter(proje_id__in=yetkili_proje_idleri)
+             
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 

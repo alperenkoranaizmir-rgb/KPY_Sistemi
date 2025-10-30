@@ -1,17 +1,45 @@
 from django.contrib import admin
 from .models import MaliyetKalemi, Butce, Maliyet
+from projects.models import Proje # DÜZELTME: Mixin için Proje import edildi
+
+# --- DÜZELTME BAŞLANGICI: Proje Bazlı Yetki Mixin'i eklendi ---
+class ProjeYetkiMixin:
+    def has_module_permission(self, request):
+        if not request.user.is_authenticated:
+            return False
+        if request.user.is_superuser:
+            return True
+        return request.user.projeyetkisi_set.exists()
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        
+        if request.user.is_superuser:
+            return qs 
+        
+        yetkili_proje_idleri = request.user.projeyetkisi_set.values_list('proje_id', flat=True)
+        
+        if self.model is Proje:
+            filtre_alani = 'id__in'
+        else:
+            filtre_alani = 'proje_id__in'
+            
+        return qs.filter(**{filtre_alani: yetkili_proje_idleri})
+# --- DÜZELTME SONU ---
+
 
 @admin.register(MaliyetKalemi)
 class MaliyetKalemiAdmin(admin.ModelAdmin):
     """
     Maliyet Kalemleri (Tanımlamalar) admin paneli görünümü.
+    (Bu model projeye bağlı olmadığı için Mixin'e ihtiyaç duymaz)
     """
     list_display = ('ad', 'aciklama')
     search_fields = ('ad',)
 
 
 @admin.register(Butce)
-class ButceAdmin(admin.ModelAdmin):
+class ButceAdmin(ProjeYetkiMixin, admin.ModelAdmin): # DÜZELTME: Mixin eklendi
     """
     Proje Bütçeleri admin paneli görünümü.
     """
@@ -24,7 +52,7 @@ class ButceAdmin(admin.ModelAdmin):
 
 
 @admin.register(Maliyet)
-class MaliyetAdmin(admin.ModelAdmin):
+class MaliyetAdmin(ProjeYetkiMixin, admin.ModelAdmin): # DÜZELTME: Mixin eklendi
     """
     Maliyet (Fiili Harcama) admin paneli görünümü.
     """

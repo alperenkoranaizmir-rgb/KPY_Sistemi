@@ -1,5 +1,22 @@
 from django.contrib import admin
 from .models import Demirbas, Zimmet
+from projects.models import Proje # DÜZELTME: Mixin için Proje import edildi
+
+# --- DÜZELTME BAŞLANGICI: Proje Bazlı Yetki Mixin'i eklendi ---
+# (Not: Zimmet modeli 'personel'e bağlı, personel de 'proje'ye bağlı değil.)
+# (Ancak Zimmet'in kendisi doğrudan projeye bağlı OLMADIĞI için bu mixin'i buraya eklemek
+# şu anki model yapısıyla (Zimmet'te Proje alanı yok) çalışmaz.)
+# (Eğer Zimmet'i de projeye bağlarsak bu mixin çalışır, şimdilik Zimmet projeden bağımsız.)
+
+# YENİDEN DEĞERLENDİRME: Zimmet modeliniz projeye değil, personele bağlı.
+# Personel de projeden bağımsız. Bu durumda `ProjeYetkiMixin` `envanter/admin.py`'de
+# KULLANILAMAZ çünkü 'proje_id__in' filtresi atacak bir 'proje' alanı Zimmet modelinde yok.
+
+# Eğer envanterin de projeye özel olmasını istiyorsanız, 'Zimmet' modeline 'proje' alanı eklenmelidir.
+# Şimdilik, envanterin projeden bağımsız olduğunu varsayarak bu dosyayı DEĞİŞTİRMİYORUM.
+# Orijinal dosyanız mantıksal olarak (mevcut model yapınıza göre) doğrudur.
+# --- DÜZELTME SONU ---
+
 
 @admin.register(Demirbas)
 class DemirbasAdmin(admin.ModelAdmin):
@@ -9,13 +26,10 @@ class DemirbasAdmin(admin.ModelAdmin):
     list_display = ('ad', 'seri_no', 'model', 'durum', 'alinma_tarihi')
     search_fields = ('ad', 'seri_no', 'model')
     list_filter = ('durum',) # Durumuna göre filtreleme
-    
-    # Zimmet kaydına geçmeden önce, demirbaşın durumunu otomatik 'KULLANIMDA' olarak güncelleyebiliriz.
-    # Ancak şimdilik bu karmaşık tetikleyiciyi eklemeyip, manuel takibi yapalım.
 
 
 @admin.register(Zimmet)
-class ZimmetAdmin(admin.ModelAdmin):
+class ZimmetAdmin(admin.ModelAdmin): # DÜZELTME YOK (Model projeye bağlı değil)
     """
     Zimmet Kaydı admin paneli görünümü.
     """
