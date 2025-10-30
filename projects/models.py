@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings # AUTH_USER_MODEL'i (Kullanici modelimizi) çekmek için
+from .choices import DirencNedenleri # Yeni dosyayı import ediyoruz
 
 class Proje(models.Model):
 

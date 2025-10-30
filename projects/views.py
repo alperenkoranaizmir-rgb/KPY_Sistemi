@@ -1,24 +1,20 @@
 from django.shortcuts import render
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Count
-from django.http import Http404 # 404 Hatası için
-# KRİTİK DÜZELTME: Importları fonksiyonun DIŞINDAN kaldırdık
-# (Döngüsel hatayı önlemek için)
+from django.http import Http404
+
+# KRİTİK DÜZELTME: Modelleri ve Seçenekleri (Choices) ayrı ayrı import ediyoruz.
+from projects.models import GorusmeKaydi, Proje
+from .choices import DirencNedenleri 
 
 @staff_member_required
 def direnc_analizi_raporu(request):
     """
-    Malik Direnç Analizi Raporu: Kullanıcının yetkili olduğu projelerdeki
-    tüm görüşme kayıtlarından direnç nedenlerinin yüzdesini hesaplar.
+    Malik Direnç Analizi Raporu: Artık doğru import ile çalışıyor.
     """
-    
-    # KRİTİK DÜZELTME: Importları fonksiyonun İÇİNE taşıdık
-    from projects.models import GorusmeKaydi, Proje, DirencNedenleri
-
     if not request.user.is_authenticated:
         raise Http404
         
-    # Proje İzolasyonu: Kullanıcının yetkili olduğu projelerin ID'lerini al
     if request.user.is_superuser:
         yetkili_projeler_qs = Proje.objects.filter(aktif_mi=True)
     else:

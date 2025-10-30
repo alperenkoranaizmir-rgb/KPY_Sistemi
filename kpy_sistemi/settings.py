@@ -284,18 +284,16 @@ JAZZMIN_SETTINGS = {
             "projects.Evrak",
         ]},
 
-        # 5. ANALİZ & RAPORLAR (NİHAİ DÜZELTME - Adım 218)
+        # 5. ANALİZ & RAPORLAR (NİHAİ DÜZELTME)
         {
             "name": "ANALİZ & RAPORLAR", 
             "icon": "fas fa-chart-pie", 
-            # KRİTİK DÜZELTME 1: "app" anahtarı eklendi (izin için)
-            "app": "projects", 
             "items": [
                 {
                     "name": "Malik Direnç Analizi", 
                     "url": "/projects/rapor/direnc/", 
                     "icon": "fas fa-chart-bar"
-                    # KRİTİK DÜZELTME 2: 'permissions' satırı kaldırıldı
+                    # İzin satırı kaldırıldı
                 },
             ]
         },
