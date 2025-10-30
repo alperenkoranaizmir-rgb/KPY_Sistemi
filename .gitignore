@@ -1,0 +1,18 @@
+cat <<EOT >> .gitignore
+# Sanal Ortam
+venv/
+
+# Veritabanı
+db.sqlite3
+
+# Yüklenen Dosyalar
+mediafiles/
+
+# Python Geçici Dosyaları
+__pycache__/
+*.pyc
+
+# IDE/Editör Ayarları
+.vscode/
+.idea/
+EOT

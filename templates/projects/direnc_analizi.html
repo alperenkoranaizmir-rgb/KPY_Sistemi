@@ -1,0 +1,95 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block content_title %}
+    <i class="fas fa-chart-pie"></i> Malik Direnç Analizi Raporu
+{% endblock %}
+
+{% block content %}
+<div class="row">
+
+    <div class="col-md-4">
+        <div class="card card-primary card-outline">
+            <div class="card-header">
+                <h3 class="card-title">Genel Durum Özeti</h3>
+            </div>
+            <div class="card-body">
+                <p><strong>Toplam Proje Sayısı:</strong> {{ yetkili_projeler_qs.count }}</p>
+                <p><strong>Toplam Görüşme Kaydı:</strong> {{ toplam_gorusme }}</p>
+                <p><strong>Toplam Dirençli Görüşme:</strong> {{ toplam_direnc_sayisi }}</p>
+                <p>Bu analiz, 'Anlaşma Yok/Gerekli Değil' dışındaki tüm direnç nedenlerini içerir.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card card-danger">
+            <div class="card-header">
+                <h3 class="card-title">Direnç Nedenlerinin Yüzdelik Dağılımı</h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if rapor_verisi %}
+                    <canvas id="pieChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                {% else %}
+                    <p class="text-info">Henüz yeterli direnç verisi (Fiyat, Veraset vb. nedenli olumsuz görüşme) girilmemiştir.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if rapor_verisi %}
+<script src="{% static 'admin/js/chart.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var raporVerisi = JSON.parse('{{ rapor_verisi|safe|escapejs }}');
+        
+        // Verileri Chart.js için hazırla
+        var labels = raporVerisi.map(item => item.neden_etiketi + ' (' + item.yuzde + '%)');
+        var data = raporVerisi.map(item => item.yuzde);
+        
+        // Renk Paleti (AdminLTE Standart Renkleri)
+        var backgroundColors = [
+            '#f56954', // Kırmızı (FIYAT)
+            '#00a65a', // Yeşil
+            '#f39c12', // Turuncu (VERASET)
+            '#00c0ef', // Mavi (PLAN)
+            '#3c8dbc', // Mavi
+            '#d2d6de'  // Gri (DİĞER)
+        ];
+
+        var pieChartCanvas = document.getElementById('pieChart').getContext('2d');
+        var pieData = {
+            labels: labels,
+            datasets: [
+                {
+                    data: data,
+                    backgroundColor: backgroundColors.slice(0, labels.length),
+                }
+            ]
+        };
+
+        var pieOptions = {
+            maintainAspectRatio : false,
+            responsive : true,
+            legend: {
+                position: 'right',
+            }
+        }
+        
+        // Pasta Grafiğini Çiz
+        new Chart(pieChartCanvas, {
+            type: 'pie',
+            data: pieData,
+            options: pieOptions
+        });
+    });
+</script>
+{% endif %}
+
+{% endblock %}

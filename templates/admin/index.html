@@ -1,0 +1,104 @@
+{% extends 'admin/base_site.html' %}
+{% load i18n jazzmin %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-lg-3 col-6"> 
+            <div class="small-box bg-success">
+                <div class="inner">
+                    <h3>
+                        {% with total_imza_orani|default:0 as imza_orani %}
+                            {{ imza_orani|floatformat:2 }}% 
+                        {% endwith %}
+                    </h3>
+                    <p>Genel İmza Oranı (Arsa Payı)</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-file-signature"></i>
+                </div>
+                <a href="{% url 'admin:projects_proje_changelist' %}" class="small-box-footer">
+                    Proje Detayları <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-danger">
+                <div class="inner">
+                    <h3>{{ bekleyen_gorev_sayisi }}</h3>
+                    <p>Bana Atanan Bekleyen Görevler</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <a href="{% url 'admin:users_gorev_changelist' %}?atanan_kullanici__id__exact={{ user.id }}&durum__exact=BEKLEMEDE" class="small-box-footer">
+                    Görevleri Filtrele <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <h3>{{ toplam_malik_sayisi }}</h3>
+                    <p>Toplam Yetkili Malik Sayısı (CRM)</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <a href="{% url 'admin:projects_malik_changelist' %}" class="small-box-footer">
+                    Malik Listesi <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-secondary">
+                <div class="inner">
+                    <h3>-</h3>
+                    <p>Kritik Uyarılar</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <a href="#" class="small-box-footer">
+                    Geliştiriliyor <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+        
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <h4 class="mt-4">{% translate 'Yönetim Modülleri' %}</h4>
+            {% for app in app_list %}
+                {% if app.has_module_permission %}
+                    {% for model in app.models %}
+                        {% if model.perms.view %}
+                            {% with model_label=model.name|lower|default:model.label %}
+                                <div class="card card-primary card-outline collapsed-card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">{{ model.name }}</h3>
+                                        <div class="card-tools">
+                                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul class="list-unstyled">
+                                            <li><a href="{{ model.add_url }}">{% translate 'Ekle' %}</a></li>
+                                            <li><a href="{{ model.change_url }}">{% translate 'Görüntüle/Düzenle' %}</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            {% endwith %}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}
