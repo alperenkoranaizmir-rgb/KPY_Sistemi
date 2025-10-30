@@ -11,7 +11,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-# 'reverse_lazy' import'u kaldırıldı.
+# KRİTİK DÜZELTME: 'reverse_lazy' import'u ayar dosyasından kaldırıldı.
+# Bu, yükleme sırası sorunlarına (circular import) neden oluyordu.
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -290,7 +291,12 @@ JAZZMIN_SETTINGS = {
             "items": [
                 {
                     "name": "Malik Direnç Analizi", 
+                    
+                    # KRİTİK DÜZELTME: 
+                    # 'reverse_lazy' kaldırıldı. URL'nin adı (named URL)
+                    # doğrudan string olarak verildi.
                     "url": "projects:direnc_analizi_raporu", 
+                    
                     "icon": "fas fa-chart-bar",
                     
                     # KRİTİK DÜZELTME:
