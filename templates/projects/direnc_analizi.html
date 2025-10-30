@@ -14,7 +14,7 @@
                 <h3 class="card-title">Genel Durum Özeti</h3>
             </div>
             <div class="card-body">
-                <p><strong>Toplam Proje Sayısı:</strong> {{ yetkili_projeler_qs.count }}</p>
+                <p><strong>Toplam Aktif Proje Sayısı:</strong> {{ yetkili_projeler_qs.count }}</p>
                 <p><strong>Toplam Görüşme Kaydı:</strong> {{ toplam_gorusme }}</p>
                 <p><strong>Toplam Dirençli Görüşme:</strong> {{ toplam_direnc_sayisi }}</p>
                 <p>Bu analiz, 'Anlaşma Yok/Gerekli Değil' dışındaki tüm direnç nedenlerini içerir.</p>
@@ -43,10 +43,18 @@
     </div>
 </div>
 
+{% endblock %}
+
+
+{% block extrajs %}
+{{ block.super }}
+
 {% if rapor_verisi %}
-<script src="{% static 'admin/js/chart.js' %}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // 'rapor_verisi' JSON'ı Django 3+ için escapejs filtresiyle güvenli hale getirildi
         var raporVerisi = JSON.parse('{{ rapor_verisi|safe|escapejs }}');
         
         // Verileri Chart.js için hazırla
@@ -63,7 +71,7 @@
             '#d2d6de'  // Gri (DİĞER)
         ];
 
-        var pieChartCanvas = document.getElementById('pieChart').getContext('2d');
+        var pieChartCanvas = document.getElementById('pieChart').getContext('d');
         var pieData = {
             labels: labels,
             datasets: [
@@ -91,5 +99,4 @@
     });
 </script>
 {% endif %}
-
 {% endblock %}

@@ -1,32 +1,31 @@
 from django.shortcuts import render
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Count
-from django.http import Http404
+from django.http import Http404, HttpResponseForbidden # DÜZELTME
+from django.contrib import admin 
 
-# KRİTİK DÜZELTME: Modelleri ve Seçenekleri (Choices) ayrı ayrı import ediyoruz.
 from projects.models import GorusmeKaydi, Proje
 from .choices import DirencNedenleri 
 
 @staff_member_required
 def direnc_analizi_raporu(request):
     """
-    Malik Direnç Analizi Raporu: Artık doğru import ile çalışıyor.
+    Malik Direnç Analizi Raporu: Artık SADECE SÜPER KULLANICILAR içindir
+    ve TÜM PROJELERİ kapsar.
     """
-    if not request.user.is_authenticated:
-        raise Http404
+    # KRİTİK DÜZELTME: Sadece süper kullanıcılar bu raporu görebilir.
+    if not request.user.is_superuser:
+        # Yetkisi yoksa 403 Hatası döndür
+        return HttpResponseForbidden("Bu sayfayı görüntüleme yetkiniz yok.")
         
-    if request.user.is_superuser:
-        yetkili_projeler_qs = Proje.objects.filter(aktif_mi=True)
-    else:
-        # --- DÜZELTME BAŞLANGICI ---
-        # 'yetkili_olanlar' metodu yerine doğrudan filtreleme yapıyoruz.
-        yetkili_proje_idleri = request.user.projeyetkisi_set.values_list('proje_id', flat=True)
-        yetkili_projeler_qs = Proje.objects.filter(id__in=yetkili_proje_idleri, aktif_mi=True)
-        # --- DÜZELTME SONU ---
+    # KRİTİK DÜZELTME: Rapor artık global. Proje bazlı filtreleme (else bloğu) kaldırıldı.
+    # Rapor her zaman TÜM aktif projeleri kapsar.
+    yetkili_projeler_qs = Proje.objects.filter(aktif_mi=True)
 
     if not yetkili_projeler_qs.exists():
-        return render(request, 'projects/direnc_analizi.html', {'hata_mesaji': "Yetkili olduğunuz aktif proje bulunmamaktadır."})
+        return render(request, 'projects/direnc_analizi.html', {'hata_mesaji': "Sistemde henüz aktif proje bulunmamaktadır."})
 
+    # Raporlama mantığı (Tüm projeler üzerinden)
     gorusmeler_qs = GorusmeKaydi.objects.filter(
         proje__in=yetkili_projeler_qs,
     )
@@ -52,11 +51,13 @@ def direnc_analizi_raporu(request):
             })
 
     context = {
-        'baslik': "Malik Direnç Analizi Raporu",
+        **admin.site.each_context(request),
+        
+        'baslik': "Genel Malik Direnç Analizi Raporu", # Başlığı güncelledik
         'rapor_verisi': rapor_verisi,
         'toplam_gorusme': toplam_gorusme,
         'toplam_direnc_sayisi': toplam_direnc_sayisi,
-        'yetkili_projeler_qs': yetkili_projeler_qs, # Özete eklemek için context'e ekledik
+        'yetkili_projeler_qs': yetkili_projeler_qs,
     }
 
     return render(request, 'projects/direnc_analizi.html', context)

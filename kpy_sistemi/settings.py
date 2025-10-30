@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+# 'reverse_lazy' import'u kaldırıldı.
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -217,8 +218,6 @@ JAZZMIN_UI_TWEAKS = {
         "danger": "btn-danger",
         "success": "btn-success"
     }
-    # NOT: Az önceki "custom_css" satırını (Adım 170) bu bloktan sildiğimiz için, 
-    # artık CSS sorunları yaşamayacağız.
 }
 
 
@@ -291,9 +290,13 @@ JAZZMIN_SETTINGS = {
             "items": [
                 {
                     "name": "Malik Direnç Analizi", 
-                    "url": "/projects/rapor/direnc/", 
-                    "icon": "fas fa-chart-bar"
-                    # İzin satırı kaldırıldı
+                    "url": "projects:direnc_analizi_raporu", 
+                    "icon": "fas fa-chart-bar",
+                    
+                    # KRİTİK DÜZELTME:
+                    # Bu menü öğesini sadece süper kullanıcılara (sistem yöneticilerine)
+                    # göstermek için bir yetki ekliyoruz.
+                    "permissions": ["auth.view_group"]
                 },
             ]
         },
