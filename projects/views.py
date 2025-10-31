@@ -1,13 +1,15 @@
+# /projects/views.py (NİHAİ VE TEMİZLENMİŞ VERSİYON)
+
 from django.shortcuts import render
 from django.contrib.admin.views.decorators import staff_member_required
-from django.db.models import Count, Sum, Q, F # Tüm gerekli importlar tek satırda toplandı
+from django.db.models import Count, Sum, Q, F 
 from django.http import Http404, HttpResponseForbidden 
 from django.contrib import admin
 from django.contrib.auth.decorators import login_required 
 
 # Modellerin import edilmesi (Huni raporunun çalışması için kritik)
 from projects.models import GorusmeKaydi, Proje, Malik, Hisse 
-from .choices import DirencNedenleri # projects/choices.py dosyasından import ediliyor
+from .choices import DirencNedenleri 
 
 
 # -----------------------------------------------------------------
@@ -70,7 +72,7 @@ def direnc_analizi_raporu(request):
 
 
 # -----------------------------------------------------------------
-# 2. PROJE İLERLEME HUNİSİ RAPORU (Düzeltilmiş ve Temizlenmiş)
+# 2. PROJE İLERLEME HUNİSİ RAPORU
 # -----------------------------------------------------------------
 @login_required 
 def ilerleme_hunisi_raporu(request):
@@ -81,7 +83,6 @@ def ilerleme_hunisi_raporu(request):
     yetkili_projeler_qs = Proje.objects.filter(aktif_mi=True)
     
     if not proje_id:
-        # Eğer proje seçilmezse, kullanıcıya seçim yapması gerektiğini bildiren ekranı göster
         context = {
             **admin.site.each_context(request),
             'baslik': "Proje İlerleme Hunisi Raporu",
@@ -114,15 +115,19 @@ def ilerleme_hunisi_raporu(request):
     ).distinct().count()
 
     # 3. OLUMLU BAKAN MALİK SAYISI
+    gorusme_olumlu = GorusmeKaydi.GorusmeSonucu.OLUMLU if hasattr(GorusmeKaydi, 'GorusmeSonucu') else 'OLUMLU'
+    
     olumlu_bakan_malik_sayisi = Malik.objects.filter(
         proje=secili_proje,
-        gorusmekaydi__gorusme_sonucu=GorusmeKaydi.GorusmeSonucu.OLUMLU
+        gorusmekaydi__gorusme_sonucu=gorusme_olumlu
     ).distinct().count()
 
     # 4. İMZALAYAN MALİK SAYISI
+    hisse_imzali = Hisse.ImzaDurumu.IMZALADI if hasattr(Hisse, 'ImzaDurumu') else 'IMZALADI'
+    
     imzalayan_malik_sayisi = Malik.objects.filter(
         proje=secili_proje,
-        hisse__durum=Hisse.ImzaDurumu.IMZALADI
+        hisse__durum=hisse_imzali
     ).distinct().count()
     
     
@@ -145,5 +150,4 @@ def ilerleme_hunisi_raporu(request):
         'huni_verisi': huni_verisi
     }
     
-    # Yeni ve doğru template dosyası kullanılıyor
     return render(request, 'projects/ilerleme_hunisi.html', context)

@@ -1,13 +1,12 @@
-# saha/admin.py (Hata Giderilmiş ve Temizlenmiş Kod)
+# /saha/admin.py (NİHAİ VE TEMİZLENMİŞ VERSİYON)
 
 from django.contrib import admin
-# Tüm modeller tek import satırında toplandı.
-from .models import Taseron, SahaRaporu, TahliyeTakibi, IsTakvimiGorevi, GunlukSahaRaporu
-from kpy_sistemi.admin import kpy_admin_site # Özel Admin Site import edildi
+from kpy_sistemi.admin import kpy_admin_site 
+from .models import Taseron, TahliyeTakibi, IsTakvimiGorevi, GunlukSahaRaporu # Sadece korunan modeller import edildi
 
 
 # -----------------------------------------------------------------
-# MEVCUT SAHA MODELLERİ (Taseron, SahaRaporu, IsTakvimiGorevi)
+# MEVCUT SAHA MODELLERİ (Taseron, IsTakvimiGorevi)
 # -----------------------------------------------------------------
 
 @admin.register(Taseron, site=kpy_admin_site) 
@@ -16,12 +15,7 @@ class TaseronAdmin(admin.ModelAdmin):
     list_filter = ('proje', 'uzmanlik_alani')
     search_fields = ('firma_adi', 'yetkili_kisi', 'proje__proje_adi')
 
-@admin.register(SahaRaporu, site=kpy_admin_site) 
-class SahaRaporuAdmin(admin.ModelAdmin):
-    list_display = ('tarih', 'proje', 'raporu_yazan')
-    list_filter = ('proje', 'tarih', 'raporu_yazan')
-    search_fields = ('proje__proje_adi', 'metin')
-    readonly_fields = ('tarih',)
+# SahaRaporu modelinin admin kaydı kaldırıldı (saha/models.py'den silindi)
 
 @admin.register(IsTakvimiGorevi, site=kpy_admin_site) 
 class IsTakvimiGoreviAdmin(admin.ModelAdmin):
@@ -31,43 +25,39 @@ class IsTakvimiGoreviAdmin(admin.ModelAdmin):
 
 
 # -----------------------------------------------------------------
-# HATA VEREN MODEL DÜZELTİLDİ: TahliyeTakibi
+# TAHİLİYE TAKİBİ MODELİ
 # -----------------------------------------------------------------
 
 @admin.register(TahliyeTakibi, site=kpy_admin_site) 
 class TahliyeTakibiAdmin(admin.ModelAdmin):
-    # Hata Düzeltmesi: list_display modeldeki doğru alan adlarıyla değiştirildi.
+    # Modeldeki doğru alan adları kullanıldı
     list_display = (
-        'proje', # Proje alanı projeler arası filtreleme için eklendi
+        'proje', 
         'bagimsiz_bolum', 
-        'malik_tahliye_etti', # Hatalı 'tahliye_edildi_mi' yerine doğru alan
-        'elektrik_kesildi',   # Hatalı 'elektrik_kesildi_mi' yerine doğru alan
-        'su_kesildi',         # Hatalı 'su_kesildi_mi' yerine doğru alan
-        'gaz_kesildi',        # Hatalı 'dogalgaz_kesildi_mi' yerine doğru alan
-        'yikima_hazir',       # Bu alan önemli olduğu için listeye eklendi
+        'malik_tahliye_etti', 
+        'elektrik_kesildi',   
+        'su_kesildi',         
+        'gaz_kesildi',        
+        'yikima_hazir',       
+        'son_kontol_tarihi'   
     )
     
-    # Hata Düzeltmesi: list_filter modeldeki doğru alan adlarıyla değiştirildi.
     list_filter = (
-        'bagimsiz_bolum__proje', 
+        'proje', # Proje filtresi doğrudan eklendi
+        'yikima_hazir', 
         'malik_tahliye_etti', 
         'elektrik_kesildi', 
         'su_kesildi', 
         'gaz_kesildi',
-        'yikima_hazir',
     )
     
     search_fields = ('bagimsiz_bolum__ada', 'bagimsiz_bolum__parsel', 'bagimsiz_bolum__kapi_no')
-    
-    # Operasyonel verimlilik için hızlı düzenlemeye izin verildi.
-    list_editable = ('malik_tahliye_etti', 'elektrik_kesildi', 'su_kesildi', 'gaz_kesildi', 'yikima_hazir')
-    
-    # Büyük veri setlerinde performans için
-    raw_id_fields = ('bagimsiz_bolum',) 
+    list_editable = ('malik_tahliye_etti', 'elektrik_kesildi', 'su_kesildi', 'gaz_kesildi', 'yikima_hazir') 
+    raw_id_fields = ('bagimsiz_bolum', 'proje') # Proje alanı raw_id olarak eklendi
 
 
 # -----------------------------------------------------------------
-# YENİ EKLENEN MODEL: GunlukSahaRaporu
+# GÜNLÜK SAHA RAPORU MODELİ
 # -----------------------------------------------------------------
 
 @admin.register(GunlukSahaRaporu, site=kpy_admin_site)

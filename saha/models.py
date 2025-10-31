@@ -1,13 +1,15 @@
-# saha/models.py
+# /saha/models.py (NİHAİ VE TEMİZLENMİŞ VERSİYON)
 
 from django.db import models
 from projects.models import Proje, BagimsizBolum
 from users.models import Kullanici
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
-
+# -----------------------------------------------------------------
+# 1. TAŞERON YÖNETİMİ MODELİ
+# -----------------------------------------------------------------
 class Taseron(models.Model):
-    """ Modül 4: Taşeron Yönetimi """
     proje = models.ForeignKey(Proje, on_delete=models.CASCADE, related_name='taseronlar')
     firma_adi = models.CharField(max_length=255)
     yetkili_kisi = models.CharField(max_length=150, blank=True, null=True)
@@ -23,42 +25,10 @@ class Taseron(models.Model):
         verbose_name_plural = "Taşeronlar"
         ordering = ['firma_adi']
 
-class SahaRaporu(models.Model):
-    """ Modül 4: Günlük Saha Raporları """
-    proje = models.ForeignKey(Proje, on_delete=models.CASCADE, related_name='saha_raporlari')
-    raporu_yazan = models.ForeignKey(Kullanici, on_delete=models.SET_NULL, null=True, related_name='saha_raporlari')
-    tarih = models.DateField(auto_now_add=True)
-    metin = models.TextField(verbose_name="Günlük Rapor Özeti")
-    fotograf1 = models.ImageField(upload_to='uploads/saha_fotograflari/', blank=True, null=True)
-    fotograf2 = models.ImageField(upload_to='uploads/saha_fotograflari/', blank=True, null=True)
-    fotograf3 = models.ImageField(upload_to='uploads/saha_fotograflari/', blank=True, null=True)
-    
-    def __str__(self):
-        return f"{self.proje.proje_adi} - {self.tarih} Raporu"
-    
-    class Meta:
-        verbose_name = "Günlük Saha Raporu"
-        verbose_name_plural = "Günlük Saha Raporları"
-        ordering = ['-tarih']
-
-class TahliyeTakibi(models.Model):
-    """ Modül 4: Tahliye & Yıkım Takibi """
-    bagimsiz_bolum = models.OneToOneField(BagimsizBolum, on_delete=models.CASCADE, related_name='tahliye_durumu')
-    tahliye_edildi_mi = models.BooleanField(default=False, verbose_name="Tahliye Edildi")
-    elektrik_kesildi_mi = models.BooleanField(default=False, verbose_name="Elektrik Kesildi")
-    su_kesildi_mi = models.BooleanField(default=False, verbose_name="Su Kesildi")
-    dogalgaz_kesildi_mi = models.BooleanField(default=False, verbose_name="Doğalgaz Kesildi")
-    notlar = models.TextField(blank=True, null=True)
-    
-    def __str__(self):
-        return f"{self.bagimsiz_bolum} Tahliye Durumu"
-    
-    class Meta:
-        verbose_name = "Tahliye Takip Kaydı"
-        verbose_name_plural = "Tahliye Takip Kayıtları"
-
+# -----------------------------------------------------------------
+# 2. İŞ TAKVİMİ GÖREVİ MODELİ
+# -----------------------------------------------------------------
 class IsTakvimiGorevi(models.Model):
-    """ Modül 4: İş Takvimi (Gantt) """
     proje = models.ForeignKey(Proje, on_delete=models.CASCADE, related_name='is_takvimi')
     gorev_adi = models.CharField(max_length=255)
     baslangic_tarihi = models.DateField()
@@ -75,15 +45,11 @@ class IsTakvimiGorevi(models.Model):
         ordering = ['baslangic_tarihi']
 
 
-
 # -----------------------------------------------------------------
-# 1. TAHİLİYE TAKİBİ MODELİ
+# 3. TAHİLİYE TAKİBİ MODELİ (ÇALIŞILAN DETAYLI VERSİYON KORUNDU)
 # -----------------------------------------------------------------
 
 class TahliyeTakibi(models.Model):
-    """
-    Kentsel Dönüşüm Projelerinde bağımsız bölümlerin tahliye sürecini izler.
-    """
     proje = models.ForeignKey(
         Proje,
         on_delete=models.CASCADE,
@@ -91,7 +57,7 @@ class TahliyeTakibi(models.Model):
     )
     
     bagimsiz_bolum = models.ForeignKey(
-        BagimsizBolum,
+        BagimsizBolum, # OneToOneField kaldırıldı, çünkü ForeignKey ile proje bazlı unique_together daha esnektir
         on_delete=models.PROTECT,
         verbose_name="Takip Edilen Bağımsız Bölüm",
         help_text="Hangi daire, dükkan veya mülkün tahliyesi takip ediliyor."
@@ -115,24 +81,21 @@ class TahliyeTakibi(models.Model):
     class Meta:
         verbose_name = "Tahliye Takibi"
         verbose_name_plural = "Tahliye Takip Kayıtları"
-        unique_together = ('proje', 'bagimsiz_bolum') # Bir projede bir mülk sadece 1 kez takip edilebilir.
+        unique_together = ('proje', 'bagimsiz_bolum')
 
 
 # -----------------------------------------------------------------
-# 2. GÜNLÜK SAHA RAPORU MODELİ
+# 4. GÜNLÜK SAHA RAPORU MODELİ (ÇALIŞILAN DETAYLI VERSİYON KORUNDU)
 # -----------------------------------------------------------------
 
 class GunlukSahaRaporu(models.Model):
-    """
-    Şantiye Şefinin veya Saha Yöneticisinin günlük ilerleme ve sorunları kaydettiği model.
-    """
     proje = models.ForeignKey(
         Proje,
         on_delete=models.CASCADE,
         verbose_name="İlgili Proje"
     )
     
-    rapor_tarihi = models.DateField(verbose_name="Rapor Tarihi", unique=True) # Günde 1 rapor
+    rapor_tarihi = models.DateField(verbose_name="Rapor Tarihi", unique=True)
     
     raporu_hazirlayan = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -149,7 +112,7 @@ class GunlukSahaRaporu(models.Model):
     yapilan_is = models.TextField(verbose_name="Bugün Yapılan İşin Özeti")
     karsilasilan_sorunlar = models.TextField(blank=True, null=True, verbose_name="Karşılaşılan Sorunlar ve Çözümler")
     
-    # Saha Fotoğrafı (Evrak Modeline referans da eklenebilir, şimdilik basit tutalım)
+    # Saha Fotoğrafı
     saha_fotografi = models.FileField(
         upload_to='saha_raporlari/%Y/%m/%d/', 
         blank=True, null=True, 
