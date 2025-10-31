@@ -34,10 +34,11 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'jazzmin',  # Yeni AdminLTE Teması
-    'users',  # User Modülü
+    'users',    # User Modülü
     'projects', # Project Modülü
     'finance',  # Finans Modülü
     'envanter', # envanter Modülü
+    'saha',     # saha Modülü
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -45,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize', 
 ]
 
 MIDDLEWARE = [
@@ -249,7 +251,7 @@ JAZZMIN_SETTINGS = {
         "projects.GorusmeKaydi": "fas fa-comments",
         "projects.ProjeYetkisi": "fas fa-user-shield",
         "finance.MaliyetKalemi": "fas fa-tags",
-        "finance.Butce": "fas fa-cash-register",
+        # "finance.Butce": "fas fa-cash-register", # Bu model olmadığı için ikonuna da gerek yok
         "finance.Maliyet": "fas fa-dollar-sign",
         "envanter.Demirbas": "fas fa-laptop",
         "envanter.Zimmet": "fas fa-exchange-alt",
@@ -304,12 +306,19 @@ JAZZMIN_SETTINGS = {
                     # göstermek için bir yetki ekliyoruz.
                     "permissions": ["auth.view_group"]
                 },
+
+                {
+                   'name': 'Bütçe vs. Fiili Raporu',
+                   'url': 'admin:butce_raporu',  # Adım 1'de 'name' olarak bunu verdik
+                   'icon': 'fas fa-money-check-alt',
+                   'permissions': ['auth.view_user'], # (Tüm kullanıcılar görebilsin)
+                },
             ]
         },
 
-        # 6. BÜTÇE & MALİYET
+        # 6. BÜTÇE & MALİYET  (*** DÜZELTİLMİŞ BÖLÜM ***)
         {"app": "finance", "name": "BÜTÇE & MALİYET", "icon": "fas fa-money-bill-wave", "models": [
-            "finance.Butce",
+            # "finance.Butce", # <-- 404 HATASI VEREN BU SATIR KALDIRILDI
             "finance.Maliyet",
             {"model": "finance.MaliyetKalemi", "label": "Maliyet Kalemleri (Tanım)"},
         ]},

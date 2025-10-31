@@ -1,0 +1,86 @@
+{% extends 'admin/base_site.html' %}
+{% load static %}
+{% load humanize %} 
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">{{ title }}</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="{% url 'admin:index' %}">Ana Panel</a></li>
+                    <li class="breadcrumb-item active">{{ title }}</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Proje Bazlı Bütçe Durumu</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Proje Adı</th>
+                                    <th style="text-align: right;">Planlanan Bütçe (TL)</th>
+                                    <th style="text-align: right;">Fiili Harcama (TL)</th>
+                                    <th style"text-align: right;">Kalan Bütçe (TL)</th>
+                                    <th style="width: 200px;">Bütçe Kullanım Oranı</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in projeler %}
+                                <tr>
+                                    <td><strong>{{ p.proje_adi }}</strong></td>
+                                    <td style="text-align: right;">{{ p.planlanan_butce|intcomma }}</td>
+                                    <td style="text-align: right;">{{ p.fiili_harcama|intcomma }}</td>
+                                    
+                                    {% if p.kalan_butce < 0 %}
+                                    <td style="text-align: right;" class="text-danger">
+                                        <strong>({{ p.kalan_butce|intcomma }}) Bütçe Aşıldı!</strong>
+                                    </td>
+                                    {% else %}
+                                    <td style="text-align: right;" class="text-success">
+                                        {{ p.kalan_butce|intcomma }}
+                                    </td>
+                                    {% endif %}
+
+                                    <td>
+                                        <div class="progress progress-sm">
+                                            {% if p.kullanilan_yuzde > 100 %}
+                                                <div class="progress-bar bg-danger" style="width: 100%"></div>
+                                            {% elif p.kullanilan_yuzde > 80 %}
+                                                <div class="progress-bar bg-warning" style="width: {{ p.kullanilan_yuzde }}%"></div>
+                                            {% else %}
+                                                <div class="progress-bar bg-primary" style="width: {{ p.kullanilan_yuzde }}%"></div>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-center d-block">{{ p.kullanilan_yuzde }}% Kullanıldı</small>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">Raporlanacak proje bulunamadı.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

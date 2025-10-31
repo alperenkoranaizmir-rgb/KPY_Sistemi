@@ -1,52 +1,32 @@
+# users/admin.py (DÜZELTİLMİŞ)
+
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from django.db.models import Sum, F, ExpressionWrapper, DecimalField
-from .models import Kullanici, Gorev 
-from projects.models import Proje, Malik # Görevlerde kullanılacak
+from .models import Kullanici, Gorev
+from kpy_sistemi.admin import kpy_admin_site  # <-- 1. ADIM: Özel admin sitemizi import et
 
+# Django'nun varsayılan UserAdmin formunu genişleterek kendi modelimizi kullanıyoruz.
+class CustomUserAdmin(UserAdmin):
+    model = Kullanici
+    # Admin panelinde kullanıcı eklerken/düzenlerken hangi alanların görüneceğini belirtiyoruz.
+    # 'projeler' alanını (ProjeYetkisi üzerinden) buraya eklemiyoruz
+    # çünkü onu Proje üzerinden (inline) yönetmek daha mantıklı.
+    fieldsets = UserAdmin.fieldsets + (
+        ('Şirket Bilgileri', {'fields': ('departman', 'unvan', 'telefon')}),
+    )
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        ('Şirket Bilgileri', {'fields': ('departman', 'unvan', 'telefon')}),
+    )
+    list_display = ('username', 'email', 'first_name', 'last_name', 'departman', 'unvan', 'is_staff')
+    list_filter = ('departman', 'is_staff', 'is_superuser', 'groups')
+    search_fields = ('username', 'first_name', 'last_name', 'email', 'unvan')
 
-# Proje Yetki Mixin'i ve KullaniciAdmin tanımı (Önceki Adımlardan)
-class GorevProjeYetkiMixin:
-    # ...
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        if request.user.is_superuser:
-            return qs 
-        
-        yetkili_proje_idleri = request.user.projeyetkisi_set.values_list('proje_id', flat=True)
-        
-        # --- DÜZELTME BAŞLANGICI ---
-        # "atanan_kullanici=request.user" filtresi kaldırıldı.
-        # Artık Proje Müdürü, projesindeki tüm görevleri görebilir.
-        return qs.filter(proje_id__in=yetkili_proje_idleri)
-        # --- DÜZELTME SONU ---
-    
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == "proje" and not request.user.is_superuser:
-            yetkili_proje_idleri = request.user.projeyetkisi_set.values_list('proje_id', flat=True)
-            kwargs["queryset"] = db_field.related_model.objects.filter(id__in=yetkili_proje_idleri)
-        
-        # DÜZELTME: Görev oluştururken 'malik' listesi de projeye göre filtrelenmeli
-        if db_field.name == "malik" and not request.user.is_superuser:
-             yetkili_proje_idleri = request.user.projeyetkisi_set.values_list('proje_id', flat=True)
-             kwargs["queryset"] = db_field.related_model.objects.filter(proje_id__in=yetkili_proje_idleri)
-             
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+# Görev Modeli Admin Arayüzü
+@admin.register(Gorev, site=kpy_admin_site) # <-- 2. ADIM: 'site=kpy_admin_site' ekle
+class GorevAdmin(admin.ModelAdmin):
+    list_display = ('baslik', 'atanan_kullanici', 'proje', 'durum', 'son_tarih')
+    list_filter = ('durum', 'proje', 'atanan_kullanici', 'son_tarih')
+    search_fields = ('baslik', 'aciklama', 'atanan_kullanici__username', 'proje__proje_adi')
 
-
-@admin.register(Kullanici)
-class KullaniciAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'unvan', 'is_staff')
-    
-    fieldsets = UserAdmin.fieldsets[:2] + (
-        ("Proje Bilgileri", {'fields': ('unvan', 'telefon_numarasi')}),
-    ) + UserAdmin.fieldsets[2:]
-
-
-@admin.register(Gorev)
-class GorevAdmin(GorevProjeYetkiMixin, admin.ModelAdmin):
-    list_display = ('proje', 'baslik', 'atanan_kullanici', 'son_tarih', 'durum')
-    search_fields = ('baslik', 'aciklama')
-    list_filter = ('proje', 'durum', 'atanan_kullanici')
-    autocomplete_fields = ['proje', 'malik', 'atanan_kullanici']
-    ordering = ['son_tarih']
+# Kullanıcı modelimizi özel admin arayüzü ile birlikte özel sitemize kaydediyoruz.
+kpy_admin_site.register(Kullanici, CustomUserAdmin)

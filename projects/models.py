@@ -42,6 +42,14 @@ class Proje(models.Model):
     )
     # --- DÜZELTME SONU ---
 
+    toplam_butce = models.DecimalField(
+        max_digits=12, 
+        decimal_places=2, 
+        default=0.00, 
+        verbose_name="Planlanan Toplam Bütçe",
+        help_text="Proje için ayrılan toplam bütçe tutarı (TL)"
+    )
+
     def __str__(self):
         return self.proje_adi
 
