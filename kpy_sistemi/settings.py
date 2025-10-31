@@ -1,7 +1,5 @@
-# /kpy_sistemi/settings.py (NİHAİ VE TEMİZLENMİŞ VERSİYON)
-
 from pathlib import Path
-from django.utils import timezone # Celery Beat ve Migration'lar için eklendi
+from django.utils import timezone
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,11 +21,11 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'jazzmin',
-    'users',       # Sizin özel kullanıcı uygulamanız
-    'projects',    # Proje çekirdek modülü
-    'finance',     # Finans ve bütçe modülü
-    'envanter',    # Yeni envanter modülü
-    'saha',        # Saha operasyonları modülü
+    'users',        # Sizin özel kullanıcı uygulamanız
+    'projects',     # Proje çekirdek modülü
+    'finance',      # Finans ve bütçe modülü
+    'envanter',     # Yeni envanter modülü
+    'saha',         # Saha operasyonları modülü
     
     # Django'nun standart uygulamaları
     'django.contrib.admin',
@@ -237,20 +235,19 @@ JAZZMIN_SETTINGS = {
         "projects.ProjeYetkisi": "fas fa-user-shield",
         "finance.MaliyetKalemi": "fas fa-tags",
         "finance.Maliyet": "fas fa-dollar-sign",
-        "finance.Butce": "fas fa-money-check-alt", # Bütçe modelini de ikonlara ekledik
+        "finance.Butce": "fas fa-money-check-alt", 
         
-        # *** GÜNCELLENDİ: Envanter Model İsimleri ***
-        "envanter.Envanter": "fas fa-laptop",       
+        # Envanter Model İsimleri
+        "envanter.Envanter": "fas fa-laptop",      
         "envanter.KullanimKaydi": "fas fa-exchange-alt", 
-        "envanter.EnvanterKategorisi": "fas fa-folder-open", # Yeni kategori modeli
-        # *** GÜNCELLENDİ SONU ***
+        "envanter.EnvanterKategorisi": "fas fa-folder-open", 
         
         # SAHA MODÜLÜ İKONLARI
-        "saha.GunlukSahaRaporu": "fas fa-file-invoice", 
+        "saha.GunlukSahaRaporu": "fas fa-file-invoice",  
         "saha.TahliyeTakibi": "fas fa-house-damage",
         "saha.Taseron": "fas fa-hard-hat",
         "saha.IsTakvimiGorevi": "fas fa-calendar-alt",
-        "saha.SahaRaporu": "fas fa-clipboard-list", # Eski SahaRaporu'nu da tanımlayalım
+        "saha.SahaRaporu": "fas fa-clipboard-list", 
     },
 
     # Ana Menü Yapısı (Modelleri uygulamalara göre sıralar)
@@ -259,11 +256,12 @@ JAZZMIN_SETTINGS = {
     ],
 
     # Sol Menü (Side Menu) Yapısı
+    # Bu tanım, menüdeki tüm öğelerin görünürlüğünü garanti eder.
     "menu": [
         # 1. Ana Panel (Dashboard)
         {"name": "Ana Panel", "url": "admin:index", "icon": "fas fa-home"},
         
-        # 2. PROJELER (Yönetim Modülü)
+        # 2. PROJELER & TEMELLER
         {"app": "projects", "name": "PROJELER & TEMELLER", "icon": "fas fa-city", "models": [
             "projects.Proje",
             "projects.ProjeYetkisi",
@@ -295,22 +293,21 @@ JAZZMIN_SETTINGS = {
             "projects.Evrak",
         ]},
 
-        # 6. BÜTÇE & MALİYET (Butce modelini ekledik)
+        # 6. BÜTÇE & MALİYET
         {"app": "finance", "name": "BÜTÇE & MALİYET", "icon": "fas fa-money-bill-wave", "models": [
-            "finance.Butce", # Bütçe modelini ekledik
+            "finance.Butce", 
             "finance.Maliyet",
             {"model": "finance.MaliyetKalemi", "label": "Maliyet Kalemleri (Tanım)"},
         ]},
         
-        # *** GÜNCELLENDİ: Envanter Menüsü ***
+        # 7. ENVANTER YÖNETİMİ
         {"app": "envanter", "name": "ENVANTER YÖNETİMİ", "icon": "fas fa-box", "models": [
             {"model": "envanter.Envanter", "label": "Varlıklar (Envanter)"},
             {"model": "envanter.KullanimKaydi", "label": "Kullanım Kayıtları"},
             {"model": "envanter.EnvanterKategorisi", "label": "Envanter Kategorileri"},
         ]},
-        # *** GÜNCELLENDİ SONU ***
         
-        # 8. İLETİŞİM & BİLDİRİMLER
+        # 8. İLETİŞİM & BİLDİRİMLER (Custom Items)
         {
             "name": "İLETİŞİM & BİLDİRİMLER",
             "icon": "fas fa-bell",
@@ -330,7 +327,7 @@ JAZZMIN_SETTINGS = {
             ]
         },
         
-        # 9. ANALİZ & RAPORLAR
+        # 9. ANALİZ & RAPORLAR (Custom Items)
         {
             "name": "ANALİZ & RAPORLAR", 
             "icon": "fas fa-chart-pie", 
@@ -356,7 +353,7 @@ JAZZMIN_SETTINGS = {
             ]
         },
 
-        # 10. SİSTEM YÖNETİMİ & YETKİLER
+        # 10. KULLANICI & YETKİ YÖNETİMİ
         {"app": "users", "name": "KULLANICI & YETKİ YÖNETİMİ", "icon": "fas fa-users-cog", "models": [
             "users.Kullanici",
             "users.Gorev",

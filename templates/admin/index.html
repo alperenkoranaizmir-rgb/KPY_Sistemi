@@ -32,7 +32,7 @@
                 <div class="icon">
                     <i class="fas fa-tasks"></i>
                 </div>
-                <a href="{% url 'admin:users_gorevs_changelist' %}?atanan_personel__id__exact={{ user.id }}&durum__exact=BEKLEMEDE" class="small-box-footer">
+                <a href="/admin/users/gorev/?atanan_personel__id__exact={{ user.id }}&durum__exact=BEKLEMEDE" class="small-box-footer">
                     Görevleri Filtrele <i class="fas fa-arrow-circle-right"></i>
                 </a>
             </div>
