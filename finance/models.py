@@ -20,16 +20,16 @@ class MaliyetKalemi(models.Model):
 class Butce(models.Model):
     """
     Bir Proje'nin bir Maliyet Kalemi için ayrılan 'Planlanan Bütçesi'.
-    Örn: Proje A -> Kira Yardımı -> 5.000.000 TL
     """
     proje = models.ForeignKey(
         Proje,
         on_delete=models.CASCADE,
+        related_name='butceler', # İyileştirme: related_name eklendi
         verbose_name="Proje"
     )
     maliyet_kalemi = models.ForeignKey(
         MaliyetKalemi,
-        on_delete=models.PROTECT, # Bu kalemde bütçe varken kalem silinemez
+        on_delete=models.PROTECT,
         verbose_name="Maliyet Kalemi"
     )
     planlanan_tutar = models.DecimalField(
@@ -45,23 +45,22 @@ class Butce(models.Model):
     class Meta:
         verbose_name = "Proje Bütçesi"
         verbose_name_plural = "Proje Bütçeleri"
-        # Bir proje için bir maliyet kalemi sadece 1 kez tanımlanabilir
         unique_together = ('proje', 'maliyet_kalemi')
 
 
 class Maliyet(models.Model):
     """
     Bir Proje için yapılan 'Fiili (Gerçekleşen) Harcama'.
-    Örn: Proje A -> Kira Yardımı -> Ali Yılmaz'a 5.000 TL ödendi.
     """
     proje = models.ForeignKey(
         Proje,
-        on_delete=models.PROTECT, # Harcama varken proje silinemez
+        on_delete=models.PROTECT,
+        related_name='maliyetler', # İyileştirme: related_name eklendi
         verbose_name="Proje"
     )
     maliyet_kalemi = models.ForeignKey(
         MaliyetKalemi,
-        on_delete=models.PROTECT, # Harcama varken kalem silinemez
+        on_delete=models.PROTECT,
         verbose_name="Maliyet Kalemi"
     )
     
@@ -73,21 +72,14 @@ class Maliyet(models.Model):
     aciklama = models.TextField(verbose_name="Harcama Açıklaması / Fatura No")
     harcama_tarihi = models.DateField(verbose_name="Harcama Tarihi")
     
-    # Harcamayı sisteme giren personel
     kaydi_yapan_personel = models.ForeignKey(
-        settings.AUTH_USER_MODEL, # users.Kullanici
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         verbose_name="Kaydı Yapan Personel"
     )
     
-    # (Opsiyonel: Harcamanın evrağını (fatura) bağlamak için)
-    # ilgili_evrak = models.ForeignKey(
-    #     'projects.Evrak', 
-    #     on_delete=models.SET_NULL, 
-    #     blank=True, null=True, 
-    #     verbose_name="İlgili Evrak (Fatura)"
-    # )
+    # ilgili_evrak opsiyonel olarak tutulmuştur.
 
     def __str__(self):
         return f"{self.proje.proje_adi} - {self.tutar} TL ({self.maliyet_kalemi.ad})"

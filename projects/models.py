@@ -8,9 +8,16 @@ class Proje(models.Model):
     """
     proje_adi = models.CharField(max_length=255, verbose_name="Proje Adı")
     
-    # Proje ile ilgili temel bilgiler (opsiyonel)
+    # Proje ile ilgili temel bilgiler (admin.py'ye uyum için güncellendi)
     aciklama = models.TextField(blank=True, null=True, verbose_name="Proje Açıklaması")
-    proje_konumu = models.CharField(max_length=255, blank=True, null=True, verbose_name="Proje Konumu (İl/İlçe)")
+    proje_amaci = models.TextField(blank=True, null=True, verbose_name="Proje Amacı")
+    
+    # Admin'de kullanılan konum ve parsel bilgileri eklendi
+    il = models.CharField(max_length=50, blank=True, null=True, verbose_name="İl")
+    ilce = models.CharField(max_length=50, blank=True, null=True, verbose_name="İlçe")
+    mahalle = models.CharField(max_length=100, blank=True, null=True, verbose_name="Mahalle")
+    adres = models.TextField(blank=True, null=True, verbose_name="Proje Adresi")
+    ada_parsel = models.CharField(max_length=255, blank=True, null=True, verbose_name="Ada/Parsel Bilgisi")
     
     # Projenin aktif/pasif durumunu belirlemek için
     aktif_mi = models.BooleanField(default=True, verbose_name="Proje Aktif mi?")
@@ -19,12 +26,9 @@ class Proje(models.Model):
     olusturulma_tarihi = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturulma Tarihi")
     guncellenme_tarihi = models.DateTimeField(auto_now=True, verbose_name="Son Güncellenme")
 
-    # --- DÜZELTME BAŞLANGICI ---
     # Mimari Çözüm 4: Performans için Önbelleğe Alınan (Cached) Alanlar (2/3 Takibi için)
-    # Bu alanları Celery görevi otomatik olarak güncelleyecek.
     cached_imza_arsa_payi = models.DecimalField(
         max_digits=5,
-        # KRİTİK DÜZELTME: Artık 66.67 gibi bir YÜZDE saklayacağı için 2'ye indirildi.
         decimal_places=2, 
         default=0.00,
         verbose_name="Önbellek: İmza Arsa Payı (%)" 
@@ -34,13 +38,12 @@ class Proje(models.Model):
         verbose_name="Önbellek: Toplam Malik Sayısı"
     )
     
-    # YENİ ALAN: 2/3 hesaplamasını düzeltmek için ortak payda alanı
+    # 2/3 hesaplamasını düzeltmek için ortak payda alanı
     arsa_paydasi_ortak = models.PositiveIntegerField(
         blank=True, null=True, 
         verbose_name="Proje Ortak Arsa Paydası (Örn: 24000)",
         help_text="2/3 hesaplaması için projedeki tüm mülklerin ortak paydası."
     )
-    # --- DÜZELTME SONU ---
 
     toplam_butce = models.DecimalField(
         max_digits=12, 
@@ -62,7 +65,6 @@ class Proje(models.Model):
 class ProjeYetkisi(models.Model):
     """
     Mimari Çözüm 1: Proje Bazlı Rol Yönetimi (RBAC) modelimiz.
-    Bir Kullanici'nın (Personel) bir Proje'deki Rolü'nü belirler.
     """
     class RolSecenekleri(models.TextChoices):
         PROJE_MUDURU = 'PROJE_MUDURU', 'Proje Müdürü'
@@ -72,14 +74,14 @@ class ProjeYetkisi(models.Model):
         MISAFIR = 'MISAFIR', 'Misafir (Sadece Görüntüleme)'
 
     kullanici = models.ForeignKey(
-        settings.AUTH_USER_MODEL, # users.Kullanici modelimiz
-        on_delete=models.CASCADE, # Kullanıcı silinirse bu yetki kaydı da silinsin
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
         verbose_name="Personel"
     )
     
     proje = models.ForeignKey(
-        Proje, # Yukarıdaki Proje modeli
-        on_delete=models.CASCADE, # Proje silinirse bu yetki kaydı da silinsin
+        Proje,
+        on_delete=models.CASCADE,
         verbose_name="Yetkili Proje"
     )
     
@@ -91,13 +93,11 @@ class ProjeYetkisi(models.Model):
     )
 
     def __str__(self):
-        # Admin panelinde "Ali Yılmaz - Proje A - Proje Müdürü" olarak görünür
         return f"{self.kullanici} - {self.proje} - {self.get_rol_display()}"
 
     class Meta:
         verbose_name = "Proje Yetkisi"
         verbose_name_plural = "Proje Yetkileri"
-        # Bir kullanıcı bir projede sadece 1 role sahip olabilir (unique)
         unique_together = ('kullanici', 'proje')
 
 
@@ -111,7 +111,8 @@ class Malik(models.Model):
     """
     proje = models.ForeignKey(
         Proje, 
-        on_delete=models.PROTECT, # Projeye bağlı Malik varken Proje silinemez (Önemli veri koruması)
+        on_delete=models.PROTECT,
+        related_name='malikler', # ProjeAdmin'deki Count için eklendi
         verbose_name="İlgili Proje"
     )
     
@@ -120,6 +121,15 @@ class Malik(models.Model):
     soyad = models.CharField(max_length=100, verbose_name="Soyad")
     tc_kimlik_no = models.CharField(max_length=11, blank=True, null=True, verbose_name="TC Kimlik No")
     
+    # Admin'de kullanılan alan eklendi
+    cinsiyet = models.CharField(
+        max_length=10, 
+        choices=[('E', 'Erkek'), ('K', 'Kadın'), ('B', 'Belirtilmemiş')],
+        default='B',
+        blank=True, null=True,
+        verbose_name="Cinsiyet"
+    )
+
     # İletişim Bilgileri
     telefon_1 = models.CharField(max_length=20, blank=True, null=True, verbose_name="Telefon 1")
     telefon_2 = models.CharField(max_length=20, blank=True, null=True, verbose_name="Telefon 2")
@@ -129,13 +139,26 @@ class Malik(models.Model):
     # Otomatik SMS için (CRM)
     dogum_tarihi = models.DateField(blank=True, null=True, verbose_name="Doğum Tarihi")
 
+    # Admin'deki alanlara karşılık gelen metotlar (E108 hatalarını çözmek için)
+    def ad_soyad(self):
+        return f"{self.ad} {self.soyad}"
+    ad_soyad.short_description = "Ad Soyad"
+    
+    def telefon(self):
+        return self.telefon_1 or self.telefon_2
+    telefon.short_description = "Telefon"
+
+    def e_posta(self):
+        return self.email
+    e_posta.short_description = "E-Posta"
+
+
     def __str__(self):
         return f"{self.ad} {self.soyad}"
 
     class Meta:
         verbose_name = "Malik (Mülk Sahibi)"
         verbose_name_plural = "Malikler (Mülk Sahipleri)"
-        # Bir malik (aynı TCKN) bir projeye sadece 1 kez kaydedilebilmeli
         unique_together = ('proje', 'tc_kimlik_no')
 
 
@@ -145,9 +168,12 @@ class BagimsizBolum(models.Model):
     """
     proje = models.ForeignKey(
         Proje, 
-        on_delete=models.PROTECT, # İçinde Bağımsız Bölüm varken Proje silinemez
+        on_delete=models.PROTECT,
         verbose_name="İlgili Proje"
     )
+    
+    # Admin'deki alanlar
+    bolum_no = models.CharField(max_length=50, blank=True, null=True, verbose_name="Bağımsız Bölüm Numarası")
     
     # Adres Bilgileri
     ada = models.CharField(max_length=50, blank=True, null=True, verbose_name="Ada")
@@ -156,6 +182,12 @@ class BagimsizBolum(models.Model):
     
     # Mülk Bilgileri
     nitelik = models.CharField(max_length=100, verbose_name="Niteliği (Daire, Dükkan, Arsa...)")
+    
+    # Admin'deki 'kullanim_sekli' alanı için metot (nitelik alanını kullanır)
+    def kullanim_sekli(self):
+        return self.nitelik
+    kullanim_sekli.short_description = "Kullanım Şekli"
+
     tapu_alani_m2 = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 
@@ -173,6 +205,14 @@ class BagimsizBolum(models.Model):
         verbose_name="Arsa Paydası (Örn: 24000)"
     )
 
+    # Admin'deki 'arsa_payi_oran_gorunumu' için metot
+    def arsa_payi_oran_gorunumu(self):
+        if self.arsa_payi and self.arsa_paydasi:
+            return f"{self.arsa_payi}/{self.arsa_paydasi}"
+        return "-"
+    arsa_payi_oran_gorunumu.short_description = "Arsa Payı"
+
+
     def __str__(self):
         return f"{self.proje.proje_adi} - Ada:{self.ada} Parsel:{self.parsel} ({self.nitelik})"
 
@@ -183,7 +223,6 @@ class BagimsizBolum(models.Model):
 
 class Hisse(models.Model):
     """
-    Mimari Çözüm 2 ve 3: En kritik tablo. 
     Bir Malik'in bir Bağımsız Bölüm'deki mülkiyet payını ve imza durumunu belirler.
     """
     class ImzaDurumu(models.TextChoices):
@@ -200,34 +239,55 @@ class Hisse(models.Model):
     
     malik = models.ForeignKey(
         Malik, 
-        on_delete=models.PROTECT, # Hisse varken Malik silinemez
+        on_delete=models.PROTECT,
+        related_name='hisseleri', # Related name eklendi
         verbose_name="Hissedar Malik"
     )
     
     bagimsiz_bolum = models.ForeignKey(
         BagimsizBolum,
-        on_delete=models.PROTECT, # Hisse varken Bağımsız Bölüm silinemez
+        on_delete=models.PROTECT,
         verbose_name="İlgili Bağımsız Bölüm"
     )
     
-    # Mülkiyet Bilgisi (Mimari Çözüm 2)
-    hisse_orani = models.DecimalField(
-        max_digits=5, 
-        decimal_places=2, 
-        default=1.0, # Varsayılan olarak %100 (1.0)
-        verbose_name="Hisse Oranı (Örn: 0.50 = %50)"
+    # Mülkiyet Bilgisi (Admin'e uyum için pay/payda yapısı)
+    hisse_orani_pay = models.PositiveIntegerField(
+        default=1, 
+        verbose_name="Hisse Payı"
+    )
+    hisse_orani_payda = models.PositiveIntegerField(
+        default=1, 
+        verbose_name="Hisse Paydası"
     )
     
-    # Süreç Takibi (Mimari Çözüm 2)
+    # Süreç Takibi
     durum = models.CharField(
         max_length=50,
         choices=ImzaDurumu.choices,
         default=ImzaDurumu.BEKLEMEDE,
         verbose_name="İmza Durumu"
     )
+
+    # Admin'de kullanılan imza_tarihi alanı eklendi
+    imza_tarihi = models.DateField(
+        blank=True, null=True,
+        verbose_name="İmza/Red Tarihi"
+    )
     
+    # Eski hisse_orani alanını hesaplamak için property
+    @property
+    def hisse_orani(self):
+        if self.hisse_orani_payda and self.hisse_orani_payda > 0:
+            return self.hisse_orani_pay / self.hisse_orani_payda
+        return 0.0
+
+    # Admin'deki 'hisse_oran_gorunumu' için metot
+    def hisse_oran_gorunumu(self):
+        return f"{self.hisse_orani_pay}/{self.hisse_orani_payda}"
+    hisse_oran_gorunumu.short_description = "Hisse Oranı"
+
     def __str__(self):
-        return f"{self.malik} - {self.bagimsiz_bolum.nitelik} (%{self.hisse_orani * 100}) - {self.get_durum_display()}"
+        return f"{self.malik} - {self.bagimsiz_bolum.nitelik} ({self.hisse_oran_gorunumu()}) - {self.get_durum_display()}"
 
     class Meta:
         verbose_name = "Hisse (Mülkiyet Kaydı)"
@@ -240,9 +300,7 @@ class Hisse(models.Model):
 class GorusmeKaydi(models.Model):
     """
     Saha temsilcisinin malik ile yaptığı görüşmelerin kaydı.
-    CRM modülünün en aktif kullanılan parçası olacaktır.
     """
-    # *** DÜZELTME BAŞLANGICI: DirencNedenleri sınıfı buradan kaldırılmıştır. projects/choices.py dosyasından import edilmektedir. ***
     
     class GorusmeSonucu(models.TextChoices):
         OLUMLU = 'OLUMLU', 'Olumlu'
@@ -253,18 +311,19 @@ class GorusmeKaydi(models.Model):
 
     proje = models.ForeignKey(
         Proje, 
-        on_delete=models.CASCADE, # Proje silinirse görüşme kayıtları da silinsin
+        on_delete=models.CASCADE,
         verbose_name="İlgili Proje"
     )
     malik = models.ForeignKey(
         Malik,
-        on_delete=models.CASCADE, # Malik silinirse görüşme kayıtları da silinsin
+        on_delete=models.CASCADE,
         verbose_name="Görüşülen Malik"
     )
     gorusmeyi_yapan_personel = models.ForeignKey(
-        settings.AUTH_USER_MODEL, # users.Kullanici modelimiz
-        on_delete=models.SET_NULL, # Personel işten ayrılsa bile kayıt kalsın
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
         null=True,
+        related_name='yaptigi_gorusmeler', # Admin'deki 'gorusmeyi_yapan' için eklendi
         verbose_name="Görüşmeyi Yapan Personel"
     )
     
@@ -278,10 +337,19 @@ class GorusmeKaydi(models.Model):
         verbose_name="Görüşme Sonucu"
     )
 
+    # Admin'deki alanlara karşılık gelen metotlar
+    def gorusme_metni(self):
+        return self.gorusme_ozeti
+    gorusme_metni.short_description = "Görüşme Özeti"
+
+    def gorusmeyi_yapan(self):
+        return self.gorusmeyi_yapan_personel
+    gorusmeyi_yapan.short_description = "Görüşmeyi Yapan"
+
+
     # Yeni Analiz Alanı
     direnc_nedeni = models.CharField(
         max_length=50,
-        # choices artık dışarıdan (from .choices import DirencNedenleri) gelen sınıfı kullanıyor
         choices=DirencNedenleri.choices, 
         default=DirencNedenleri.YOK,
         verbose_name="Malik Direnç Nedeni"
@@ -298,8 +366,7 @@ class GorusmeKaydi(models.Model):
 
 class Evrak(models.Model):
     """
-    Mimari Çözüm 3 & 7: Dijital Arşiv (DMS) ve Evrak Sürüm Kontrolü modelimiz.
-    Tüm tapu, sözleşme, vekaletname vb. belgeleri tutar.
+    Dijital Arşiv (DMS) ve Evrak Sürüm Kontrolü modelimiz.
     """
     class EvrakTipi(models.TextChoices):
         SOZLESME = 'SOZLESME', 'Sözleşme'
@@ -312,20 +379,19 @@ class Evrak(models.Model):
     
     proje = models.ForeignKey(
         Proje, 
-        on_delete=models.PROTECT, # İçinde evrak varken proje silinemez
+        on_delete=models.PROTECT,
         verbose_name="İlgili Proje"
     )
     
-    # Mimari Çözüm 3: Gelişmiş İlişkilendirme (Evrağı ilgili olduğu her şeye bağlama)
     malik = models.ForeignKey(
         Malik, 
-        on_delete=models.SET_NULL, # Malik silinse bile evrak (örn: vekalet) kalsın
+        on_delete=models.SET_NULL,
         blank=True, null=True, 
         verbose_name="İlgili Malik (Opsiyonel)"
     )
     hisse = models.ForeignKey(
         Hisse, 
-        on_delete=models.SET_NULL, # Hisse silinse bile evrak (örn: tapu) kalsın
+        on_delete=models.SET_NULL,
         blank=True, null=True, 
         verbose_name="İlgili Hisse (Opsiyonel)"
     )
@@ -344,26 +410,35 @@ class Evrak(models.Model):
         default=EvrakTipi.DIGER,
         verbose_name="Evrak Tipi"
     )
+
+    # Admin'deki 'aciklama' arama alanı için eklendi
+    aciklama = models.TextField(
+        blank=True, null=True, 
+        verbose_name="Ek Açıklama"
+    )
     
     # Dosyanın kendisi
     dosya = models.FileField(
-        upload_to='evraklar/%Y/%m/%d/', # Yıl/Ay/Gün bazlı klasörleme yapar
+        upload_to='evraklar/%Y/%m/%d/',
         verbose_name="Dosya"
     )
     
-    # Mimari Çözüm 7: Evrak Sürüm Kontrolü
     aktif_surum_mu = models.BooleanField(default=True, verbose_name="Bu Aktif Sürüm mü?")
     onceki_surum = models.ForeignKey(
-        'self', # Modelin kendisine (Evrak'a) bağlanır
+        'self',
         on_delete=models.SET_NULL,
         blank=True, null=True,
         verbose_name="Önceki Sürüm"
     )
 
-    # Mimari Çözüm 4: OCR (Akıllı Arama) için
     text_content = models.TextField(blank=True, null=True, verbose_name="OCR ile Okunan Metin İçerik")
 
     olusturulma_tarihi = models.DateTimeField(auto_now_add=True)
+    
+    # Admin'deki 'yuklenme_tarihi' için metot
+    def yuklenme_tarihi(self):
+        return self.olusturulma_tarihi
+    yuklenme_tarihi.short_description = "Yüklenme Tarihi"
 
     def __str__(self):
         return self.evrak_adi

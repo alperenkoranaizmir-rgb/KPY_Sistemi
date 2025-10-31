@@ -1,61 +1,51 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin as DefaultUserAdmin
+# Admin'in temel User model yönetimini ve formunu kullanmak için import edin
+from django.contrib.auth.admin import UserAdmin 
 from .models import Kullanici, Gorev
-from projects.models import ProjeYetkisi # Personelin proje rollerini göstermek için import edildi
 
 
-# 1. Proje Rollerini Gösteren Inline Sınıfı
-class ProjeYetkisiInline(admin.TabularInline):
-    """
-    Bir kullanıcının hangi projelerde hangi role sahip olduğunu gösterir.
-    """
-    model = ProjeYetkisi
-    extra = 0
-    fields = ('proje', 'rol')
-    raw_id_fields = ('proje',) # Proje listesi çok uzarsa kolay seçim için
-
-# 2. Kullanıcının Atanan Görevlerini Gösteren Inline Sınıfı
-class GorevInline(admin.TabularInline):
-    """
-    Bir kullanıcıya atanmış olan görevleri gösterir.
-    """
-    model = Gorev
-    extra = 0
-    fields = ('proje', 'baslik', 'durum', 'oncelik', 'son_teslim_tarihi')
-    raw_id_fields = ('proje', 'ilgili_malik') # İlişkili alanlar için
-
-# 3. Kullanıcı Yönetimi Sınıfı
+# 1. Kullanici Yönetimi
+# Django'nun varsayılan UserAdmin'ini Kullanici modelimiz için kullanıyoruz.
 @admin.register(Kullanici)
-class KullaniciAdmin(DefaultUserAdmin):
-    """
-    Django'nun varsayılan UserAdmin sınıfını genişleterek,
-    Kullanici modelindeki özel alanları yönetir.
-    """
-    # Yeni fieldset'ler ekleyerek özel alanları grupluyoruz
-    fieldsets = DefaultUserAdmin.fieldsets + (
-        (None, {'fields': ('telefon', 'uzmanlik_alani', 'ise_baslangic_tarihi', 'profil_fotografi')}),
-        (('Proje/Görev İlişkileri'), {'fields': ()}), # Sadece inlines için başlık
-    )
+class KullaniciAdmin(UserAdmin):
     
-    # Listeleme sayfasında gösterilecek alanlar
-    list_display = DefaultUserAdmin.list_display + ('telefon', 'uzmanlik_alani', 'ise_baslangic_tarihi')
-    
-    # Filtreleme ve Arama
-    list_filter = DefaultUserAdmin.list_filter + ('uzmanlik_alani',)
-    search_fields = DefaultUserAdmin.search_fields + ('telefon', 'uzmanlik_alani')
-    
-    # Personel detay sayfasında gösterilecek alt tablolar
-    inlines = [ProjeYetkisiInline, GorevInline] 
-    
-    # Listeleme sırası
-    ordering = ('-is_active', 'last_name') 
+    # UserAdmin'in default fieldsets'ini geçersiz kılarak ekstra alanları ekliyoruz.
+    # Bu, şifre ve kritik alanların güvenli bir şekilde yönetilmesini sağlar.
+    def get_fieldsets(self, request, obj=None):
+        if not obj:
+            # Yeni kullanıcı oluştururken
+            return self.add_fieldsets
+        
+        # Mevcut kullanıcıyı düzenlerken
+        # Kullanicinin özel alanları eklenmiş fieldsets tanımı
+        fieldsets = (
+            (None, {'fields': ('username', 'password')}),
+            ('Kişisel Bilgiler', {'fields': ('first_name', 'last_name', 'email', 'telefon', 'profil_fotografi', 'uzmanlik_alani', 'ise_baslangic_tarihi')}),
+            ('İzinler', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+            ('Önemli Tarihler', {'fields': ('last_login', 'date_joined')}),
+        )
+        return fieldsets
 
-# 4. Görev Yönetimi Sınıfı
+    # Yeni kullanıcı ekleme formu için alanlar (UserAdmin'den gelir)
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        ('Ek Personel Bilgileri', {
+            'fields': ('telefon', 'uzmanlik_alani', 'profil_fotografi', 'ise_baslangic_tarihi'),
+            'classes': ('wide',),
+        }),
+    )
+
+    # Detay sayfasında gösterilecek alanlar
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active', 'uzmanlik_alani')
+    # Filtreleme
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'uzmanlik_alani')
+    # Arama
+    search_fields = ('username', 'first_name', 'last_name', 'email', 'telefon')
+    
+
+# 2. Görev Yönetimi
 @admin.register(Gorev)
 class GorevAdmin(admin.ModelAdmin):
-    # Modelin Admin URL ismini zorlayan özel 'get_model_perms' metodu KALDIRILDI.
-    # Bu sayede Django'nun standart URL çözümü ('users_gorev_changelist') kullanılacaktır.
-    
+    # DÜZELTME: list_display, Gorev modelinin görünümünü iyileştirmek için güncellendi.
     list_display = (
         'baslik', 
         'proje', 
@@ -63,17 +53,32 @@ class GorevAdmin(admin.ModelAdmin):
         'durum', 
         'oncelik', 
         'son_teslim_tarihi', 
-        'ilgili_malik'
+        'olusturulma_tarihi'
     )
-    list_filter = ('durum', 'oncelik', 'proje', 'atanan_personel')
-    search_fields = (
-        'baslik', 
-        'aciklama', 
-        'atanan_personel__username', 
-        'proje__proje_adi', 
-        'ilgili_malik__ad', 
-        'ilgili_malik__soyad'
-    )
+    # DÜZELTME: list_filter, görev durumuna ve önceliğe göre filtrelemeyi kolaylaştırır.
+    list_filter = ('durum', 'oncelik', 'proje', 'atanan_personel', 'son_teslim_tarihi')
+    # Arama
+    search_fields = ('baslik', 'aciklama', 'proje__proje_adi', 'atanan_personel__first_name', 'atanan_personel__last_name')
+    # Tarih hiyerarşisi
     date_hierarchy = 'son_teslim_tarihi'
+    
+    # KRİTİK EKLEME: Büyük verilerde hızlı arama için raw_id_fields kullanıldı.
     raw_id_fields = ('atanan_personel', 'proje', 'ilgili_malik')
-    ordering = ['durum', 'son_teslim_tarihi']
+    
+    # Detay sayfasında düzenli bir görünüm için fieldsets
+    fieldsets = (
+        (None, {
+            'fields': ('baslik', 'aciklama', 'proje', 'ilgili_malik')
+        }),
+        ('Atama ve Zamanlama', {
+            'fields': ('atanan_personel', 'son_teslim_tarihi')
+        }),
+        ('Durum ve Öncelik', {
+            'fields': ('durum', 'oncelik')
+        }),
+    )
+    
+    # Otomatik oluşturulan ve güncellenen alanlar gizlenmeli
+    readonly_fields = ('olusturulma_tarihi', 'guncellenme_tarihi') 
+    
+    ordering = ['durum', '-oncelik', 'son_teslim_tarihi']

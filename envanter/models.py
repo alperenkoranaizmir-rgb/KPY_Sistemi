@@ -31,12 +31,13 @@ class Envanter(models.Model):
     proje = models.ForeignKey(
         Proje,
         on_delete=models.CASCADE,
+        related_name='envanterler', # İyileştirme: related_name eklendi
         verbose_name="İlgili Proje"
     )
 
     kategori = models.ForeignKey(
         EnvanterKategorisi,
-        on_delete=models.PROTECT, # Kategori silinmesin
+        on_delete=models.PROTECT,
         verbose_name="Kategori"
     )
     
@@ -89,13 +90,15 @@ class KullanimKaydi(models.Model):
     """
     envanter = models.ForeignKey(
         Envanter,
-        on_delete=models.CASCADE, # Envanter silinirse kullanım kayıtları da silinsin
+        on_delete=models.CASCADE,
+        related_name='kullanim_kayitlari', # İyileştirme: related_name eklendi
         verbose_name="Kullanılan Envanter"
     )
     
     kullanici = models.ForeignKey(
         Kullanici,
-        on_delete=models.PROTECT, # Personel silinse bile kayıt kalsın
+        on_delete=models.PROTECT,
+        related_name='envanter_kullanimlari', # İyileştirme: related_name eklendi
         verbose_name="Kullanan Personel"
     )
     

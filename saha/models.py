@@ -1,4 +1,4 @@
-# /saha/models.py (NİHAİ VE TEMİZLENMİŞ VERSİYON)
+# /saha/models.py 
 
 from django.db import models
 from projects.models import Proje, BagimsizBolum
@@ -46,7 +46,7 @@ class IsTakvimiGorevi(models.Model):
 
 
 # -----------------------------------------------------------------
-# 3. TAHİLİYE TAKİBİ MODELİ (ÇALIŞILAN DETAYLI VERSİYON KORUNDU)
+# 3. TAHİLİYE TAKİBİ MODELİ
 # -----------------------------------------------------------------
 
 class TahliyeTakibi(models.Model):
@@ -57,7 +57,7 @@ class TahliyeTakibi(models.Model):
     )
     
     bagimsiz_bolum = models.ForeignKey(
-        BagimsizBolum, # OneToOneField kaldırıldı, çünkü ForeignKey ile proje bazlı unique_together daha esnektir
+        BagimsizBolum,
         on_delete=models.PROTECT,
         verbose_name="Takip Edilen Bağımsız Bölüm",
         help_text="Hangi daire, dükkan veya mülkün tahliyesi takip ediliyor."
@@ -85,7 +85,7 @@ class TahliyeTakibi(models.Model):
 
 
 # -----------------------------------------------------------------
-# 4. GÜNLÜK SAHA RAPORU MODELİ (ÇALIŞILAN DETAYLI VERSİYON KORUNDU)
+# 4. GÜNLÜK SAHA RAPORU MODELİ
 # -----------------------------------------------------------------
 
 class GunlukSahaRaporu(models.Model):
@@ -95,7 +95,8 @@ class GunlukSahaRaporu(models.Model):
         verbose_name="İlgili Proje"
     )
     
-    rapor_tarihi = models.DateField(verbose_name="Rapor Tarihi", unique=True)
+    # KRİTİK DÜZELTME: unique=True kaldırıldı.
+    rapor_tarihi = models.DateField(verbose_name="Rapor Tarihi")
     
     raporu_hazirlayan = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -126,3 +127,5 @@ class GunlukSahaRaporu(models.Model):
         verbose_name = "Günlük Saha Raporu"
         verbose_name_plural = "Günlük Saha Raporları"
         ordering = ['-rapor_tarihi']
+        # KRİTİK EKLEME: Aynı projede aynı tarihte birden fazla rapor girilemez.
+        unique_together = ('proje', 'rapor_tarihi')

@@ -247,7 +247,8 @@ JAZZMIN_SETTINGS = {
         "saha.TahliyeTakibi": "fas fa-house-damage",
         "saha.Taseron": "fas fa-hard-hat",
         "saha.IsTakvimiGorevi": "fas fa-calendar-alt",
-        "saha.SahaRaporu": "fas fa-clipboard-list", 
+        # DÜZELTME: SahaRaporu modeli silindiği için kaldırıldı.
+        # "saha.SahaRaporu": "fas fa-clipboard-list", 
     },
 
     # Ana Menü Yapısı (Modelleri uygulamalara göre sıralar)
@@ -256,7 +257,6 @@ JAZZMIN_SETTINGS = {
     ],
 
     # Sol Menü (Side Menu) Yapısı
-    # Bu tanım, menüdeki tüm öğelerin görünürlüğünü garanti eder.
     "menu": [
         # 1. Ana Panel (Dashboard)
         {"name": "Ana Panel", "url": "admin:index", "icon": "fas fa-home"},
@@ -282,8 +282,8 @@ JAZZMIN_SETTINGS = {
             
             # 4.2. Saha Modelleri (Etiketler netleştirildi)
             {"model": "saha.TahliyeTakibi", "label": "Tahliye Takip Kayıtları"},
-            {"model": "saha.GunlukSahaRaporu", "label": "Günlük Saha Raporu (Yeni)"},
-            {"model": "saha.SahaRaporu", "label": "Günlük Saha Raporu (Eski/Fazla)"},
+            {"model": "saha.GunlukSahaRaporu", "label": "Günlük Saha Raporu"}, # Düzeltme: Etiket sadeleştirildi
+            # DÜZELTME: Silinmiş model kaldırıldı: {"model": "saha.SahaRaporu", "label": "Günlük Saha Raporu (Eski/Fazla)"},
             {"model": "saha.Taseron", "label": "Taşeron Yönetimi"},
             {"model": "saha.IsTakvimiGorevi", "label": "İş Takvimi ve Görevler"},
         ]},

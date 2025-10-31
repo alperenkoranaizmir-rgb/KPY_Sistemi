@@ -44,12 +44,6 @@ class Kullanici(AbstractUser):
         # Kullanıcı adının yerine isim soyisim veya sadece isim gösterimi
         return f"{self.first_name} {self.last_name}" if self.first_name else self.username
     
-    # İsim ve soyisim alanlarını zorunlu kılmak isterseniz
-    # def clean(self):
-    #     if not self.first_name or not self.last_name:
-    #         raise ValidationError('Ad ve Soyad alanları zorunludur.')
-
-
 class Gorev(models.Model):
     """
     Kullanıcılara (Personellere) atanan projeyle ilgili görevlerin takibi.
@@ -90,6 +84,7 @@ class Gorev(models.Model):
         Malik,
         on_delete=models.SET_NULL,
         blank=True, null=True,
+        related_name='gorevleri', # Çakışmaları önlemek için related_name eklendi
         verbose_name="İlgili Malik (Opsiyonel)"
     )
 
