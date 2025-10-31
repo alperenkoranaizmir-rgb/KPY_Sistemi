@@ -52,6 +52,16 @@ class KullaniciAdmin(DefaultUserAdmin):
 # 4. Görev Yönetimi Sınıfı
 @admin.register(Gorev)
 class GorevAdmin(admin.ModelAdmin):
+    # Model meta verilerindeki model adını elle tanımlıyoruz
+    # Django Admin URL'lerinin model adını kesin olarak 'gorev' olarak çözmesi için.
+    def get_model_perms(self, request):
+        """
+        Gorev modelinin URL adının kesin olarak 'gorev' olmasını sağlar.
+        """
+        perms = super().get_model_perms(request)
+        perms['name'] = 'gorev' # Bu, URL'nin 'users_gorev_changelist' olarak çözülmesini sağlayacaktır.
+        return perms
+    
     list_display = (
         'baslik', 
         'proje', 
