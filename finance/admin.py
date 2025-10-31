@@ -1,18 +1,18 @@
-# finance/admin.py (DÜZELTİLMİŞ)
+# finance/admin.py (TAM VE DÜZELTİLMİŞ)
 
 from django.contrib import admin
 from .models import Maliyet, MaliyetKalemi
-# 1. ADIM: Özel admin sitemizi import et
 from kpy_sistemi.admin import kpy_admin_site 
 
-@admin.register(MaliyetKalemi, site=kpy_admin_site) # <-- 2. ADIM: 'site=kpy_admin_site' ekle
+@admin.register(MaliyetKalemi, site=kpy_admin_site) 
 class MaliyetKalemiAdmin(admin.ModelAdmin):
     list_display = ('ad', 'aciklama')
     search_fields = ('ad',)
 
-@admin.register(Maliyet, site=kpy_admin_site) # <-- 2. ADIM: 'site=kpy_admin_site' ekle
+@admin.register(Maliyet, site=kpy_admin_site) 
 class MaliyetAdmin(admin.ModelAdmin):
-    list_display = ('proje', 'kalem', 'tutar', 'tarih', 'odeme_durumu')
-    list_filter = ('proje', 'kalem', 'tarih', 'odeme_durumu')
-    search_fields = ('proje__proje_adi', 'kalem__ad', 'aciklama')
+    # 'kalem' -> 'maliyet_kalemi' ve 'olusturulma_tarihi' -> 'tarih' olarak düzeltildi
+    list_display = ('proje', 'maliyet_kalemi', 'tutar', 'tarih')
+    list_filter = ('proje', 'maliyet_kalemi', 'tarih')
+    search_fields = ('proje__proje_adi', 'maliyet_kalemi__ad', 'aciklama')
     list_per_page = 20

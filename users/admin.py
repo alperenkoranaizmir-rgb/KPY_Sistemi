@@ -1,30 +1,30 @@
-# users/admin.py (DÜZELTİLMİŞ)
+# users/admin.py (TAM VE DÜZELTİLMİŞ)
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import Kullanici, Gorev
-# 1. ADIM: Özel admin sitemizi import et
 from kpy_sistemi.admin import kpy_admin_site 
 
-# Django'nun varsayılan UserAdmin formunu genişleterek kendi modelimizi kullanıyoruz.
 class CustomUserAdmin(UserAdmin):
     model = Kullanici
+    
+    # 'telefon' -> 'tel_no' olarak düzeltildi. Diğer olmayan alanlar kaldırıldı.
     fieldsets = UserAdmin.fieldsets + (
-        ('Şirket Bilgileri', {'fields': ('departman', 'unvan', 'telefon')}),
+        ('Şirket Bilgileri', {'fields': ('tel_no',)}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
-        ('Şirket Bilgileri', {'fields': ('departman', 'unvan', 'telefon')}),
+        ('Şirket Bilgileri', {'fields': ('tel_no',)}),
     )
-    list_display = ('username', 'email', 'first_name', 'last_name', 'departman', 'unvan', 'is_staff')
-    list_filter = ('departman', 'is_staff', 'is_superuser', 'groups')
-    search_fields = ('username', 'first_name', 'last_name', 'email', 'unvan')
+    # 'departman' ve 'unvan' kaldırıldı
+    list_display = ('username', 'email', 'first_name', 'last_name', 'tel_no', 'is_staff')
+    # 'departman' kaldırıldı
+    list_filter = ('is_staff', 'is_superuser', 'groups')
+    search_fields = ('username', 'first_name', 'last_name', 'email', 'tel_no')
 
-# Görev Modeli Admin Arayüzü
-@admin.register(Gorev, site=kpy_admin_site) # <-- 2. ADIM: 'site=kpy_admin_site' ekle
+@admin.register(Gorev, site=kpy_admin_site) 
 class GorevAdmin(admin.ModelAdmin):
     list_display = ('baslik', 'atanan_kullanici', 'proje', 'durum', 'son_tarih')
     list_filter = ('durum', 'proje', 'atanan_kullanici', 'son_tarih')
     search_fields = ('baslik', 'aciklama', 'atanan_kullanici__username', 'proje__proje_adi')
 
-# 3. ADIM: Modeli varsayılan 'admin.site' yerine 'kpy_admin_site' ile kaydet
 kpy_admin_site.register(Kullanici, CustomUserAdmin)
