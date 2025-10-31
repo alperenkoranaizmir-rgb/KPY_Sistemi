@@ -1,16 +1,14 @@
-# users/urls.py
-
 from django.urls import path
-from . import views 
-from django.contrib.auth.decorators import login_required
+from django.views.generic import TemplateView
+from .views import DashboardView
 
 app_name = 'users'
 
 urlpatterns = [
-    # JAZZMIN menüsündeki 'users:toplu_bildirim' named URL'si için
-    path(
-        'bildirim/toplu-gonderim/', 
-        login_required(views.toplu_bildirim), 
-        name='toplu_bildirim'
-    ),
+    # Kullanıcının kendi dashboard sayfası (Ana Sayfa)
+    path('', DashboardView.as_view(), name='dashboard'),
+    
+    # Görev Listesi Sayfası (Sidebar ve Dashboard linki: users:gorev_listesi)
+    # Bir sonraki adımda bu View'ı (GorevListView) oluşturacağız, şimdilik TemplateView kullanıyoruz.
+    path('gorevler/', TemplateView.as_view(template_name='users/gorev_listesi.html'), name='gorev_listesi'), 
 ]

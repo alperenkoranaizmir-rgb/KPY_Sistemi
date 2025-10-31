@@ -1,0 +1,149 @@
+{% load static %}
+<aside class="main-sidebar sidebar-dark-primary elevation-4">
+    <a href="{% url 'users:dashboard' %}" class="brand-link">
+        <span class="brand-text font-weight-light">KPY SİSTEMİ</span>
+    </a>
+
+    <div class="sidebar">
+        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+            <div class="image">
+                {% if user.is_authenticated and user.profil_fotografi %}
+                    <img src="{{ user.profil_fotografi.url }}" class="img-circle elevation-2" alt="User Image">
+                {% else %}
+                    <i class="fas fa-user-circle fa-2x text-white"></i>
+                {% endif %}
+            </div>
+            <div class="info">
+                <a href="#" class="d-block">{{ user.first_name }} {{ user.last_name }}</a>
+            </div>
+        </div>
+
+        <nav class="mt-2">
+            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                
+                <li class="nav-item">
+                    <a href="{% url 'users:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <i class="nav-icon fas fa-tachometer-alt"></i>
+                        <p>Dashboard</p>
+                    </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a href="{% url 'projects:proje_listesi' %}" class="nav-link"> 
+                        <i class="nav-icon fas fa-project-diagram"></i>
+                        <p>
+                            Projeler
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{% url 'projects:proje_listesi' %}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Proje Listesi</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'projects:direnc_analizi' %}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Malik Direnç Analizi</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                
+                <li class="nav-item">
+                    <a href="{% url 'users:gorev_listesi' %}" class="nav-link">
+                        <i class="nav-icon fas fa-tasks"></i>
+                        <p>Görevlerim</p>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-hard-hat"></i>
+                        <p>
+                            Saha & Operasyon
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{% url 'saha:saha_rapor_listesi' %}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Günlük Saha Raporları</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'saha:qc_form_listesi' %}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Kalite Kontrol (QC)</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'saha:tahliye_takibi' %}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Tahliye Takibi</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-chart-line"></i>
+                        <p>
+                            Finans & Bütçe
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{% url 'finance:butce_raporu' %}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Bütçe Raporu</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'finance:fatura_listesi' %}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Fatura & Ödemeler</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'finance:harcama_talep_listesi' %}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Harcama Talepleri</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-boxes"></i>
+                        <p>
+                            Envanter & Stok
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{% url 'envanter:envanter_listesi' %}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Demirbaşlar</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'envanter:stok_durumu' %}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Sarf Malzeme Stok</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                
+            </ul>
+        </nav>
+        </div>
+    </aside>

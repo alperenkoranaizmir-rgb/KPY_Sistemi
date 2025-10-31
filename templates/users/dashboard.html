@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block page_title %}Kullanıcı Dashboard'u{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <h3>{{ toplam_aktif_proje_sayisi|intcomma }}</h3>
+                    <p>Aktif Projeleriniz</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+                <a href="{% url 'projects:proje_listesi' %}" class="small-box-footer">Detaylar <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning">
+                <div class="inner">
+                    <h3>{{ tamamlanmamis_gorev_sayisi|intcomma }}</h3>
+                    <p>Tamamlanmamış Görevleriniz</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <a href="{% url 'users:gorev_listesi' %}" class="small-box-footer">Görev Listesi <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-6">
+            <div class="small-box {% if bugun_vadesi_gelen > 0 %}bg-danger{% else %}bg-success{% endif %}">
+                <div class="inner">
+                    <h3>{{ bugun_vadesi_gelen|intcomma }}</h3>
+                    <p>Bugün Vadesi Gelen Görev</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <a href="{% url 'users:gorev_listesi' %}?vade=bugun" class="small-box-footer">Hemen Kontrol Et <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-dark">
+                <div class="inner">
+                    <h3>{{ gecikmis_gorev_sayisi|intcomma }}</h3>
+                    <p>Gecikmiş Görevler</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <a href="{% url 'users:gorev_listesi' %}?durum=gecikmis" class="small-box-footer">Hata Raporu <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <section class="col-lg-6 connectedSortable">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-tasks mr-1"></i>
+                        Acil ve Yaklaşan Görevleriniz (İlk 5)
+                    </h3>
+                </div>
+                <div class="card-body">
+                    {% if gorevler_kisa_liste %}
+                    <ul class="list-group">
+                        {% for gorev in gorevler_kisa_liste %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-dot-circle mr-2 text-{% if gorev.oncelik == 'ACIL' %}danger{% elif gorev.oncelik == 'YUKSEK' %}warning{% else %}primary{% endif %}"></i>
+                                <strong>[{{ gorev.proje.proje_adi }}]</strong> {{ gorev.baslik }}
+                                <br>
+                                <small class="text-muted ml-3">Son Teslim: {{ gorev.son_teslim_tarihi|default:"Belirtilmemiş"|date:"d M Y" }}</small>
+                            </div>
+                            <span class="badge badge-info badge-pill">{{ gorev.get_durum_display }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-success">Harika! Şu anda size atanmış acil veya yaklaşan göreviniz yok.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+        
+        <section class="col-lg-6 connectedSortable">
+             <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-exclamation-circle mr-1 text-danger"></i>
+                        Bütçe Yaklaşan Projeleriniz (Harcama %90+)
+                    </h3>
+                </div>
+                <div class="card-body">
+                    {% if butce_yaklasan_projeler %}
+                    <ul class="list-group">
+                        {% for proje in butce_yaklasan_projeler %}
+                        <li class="list-group-item">
+                            <strong>{{ proje.proje_adi }}</strong>
+                            <div class="progress progress-xs mt-1">
+                                {% with harcama_orani=proje.gerceklesen|default:0.00|div:proje.toplam_butce|default:1|floatformat:2|mul:100 %}
+                                <div class="progress-bar bg-danger" style="width: {{ harcama_orani }}%"></div>
+                                {% endwith %}
+                            </div>
+                            <small class="float-right text-muted">
+                                Gerçekleşen: {{ proje.gerceklesen|default:0.00|intcomma }} TL / Bütçe: {{ proje.toplam_butce|default:0.00|intcomma }} TL
+                            </small>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-success">Tebrikler! Aktif projelerinizde bütçe aşım riski şu an için görünmüyor.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+    </div>
+    </div>
+{% endblock %}
