@@ -1,4 +1,4 @@
-# users/admin.py (FINAL ÇÖZÜM)
+# users/admin.py (DÜZELTİLMİŞ ÇÖZÜM)
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
@@ -8,16 +8,17 @@ from kpy_sistemi.admin import kpy_admin_site
 class CustomUserAdmin(UserAdmin):
     model = Kullanici
     
-    list_display = ('username', 'email', 'first_name', 'last_name', 'telefon', 'is_staff')
+    # Düzeltme: 'telefon' yerine modeldeki doğru alan adı 'telefon_numarasi' kullanıldı.
+    list_display = ('username', 'email', 'first_name', 'last_name', 'telefon_numarasi', 'is_staff')
     list_filter = ('is_staff', 'is_superuser', 'groups')
-    search_fields = ('username', 'first_name', 'last_name', 'email', 'telefon')
+    search_fields = ('username', 'first_name', 'last_name', 'email', 'telefon_numarasi')
     
-    # Modeldeki doğru alan adı 'telefon' kullanıldı
+    # Düzeltme: 'telefon' yerine modeldeki doğru alan adı 'telefon_numarasi' kullanıldı.
     fieldsets = UserAdmin.fieldsets + (
-        ('Şirket Bilgileri', {'fields': ('telefon',)}),
+        ('Şirket Bilgileri', {'fields': ('telefon_numarasi',)}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
-        ('Şirket Bilgileri', {'fields': ('telefon',)}),
+        ('Şirket Bilgileri', {'fields': ('telefon_numarasi',)}),
     )
 
 

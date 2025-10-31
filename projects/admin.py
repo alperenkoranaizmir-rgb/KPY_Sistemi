@@ -1,4 +1,4 @@
-# projects/admin.py (FINAL ÇÖZÜM)
+# projects/admin.py (DÜZELTİLMİŞ ÇÖZÜM)
 
 from django.contrib import admin
 from .models import Proje, ProjeYetkisi, Malik, BagimsizBolum, Hisse, GorusmeKaydi, Evrak
@@ -24,9 +24,25 @@ class ProjeYetkisiAdmin(admin.ModelAdmin):
 
 @admin.register(Malik, site=kpy_admin_site)
 class MalikAdmin(admin.ModelAdmin):
-    # Modeldeki doğru alan adı 'anlasma_durumu' kullanıldı
-    list_display = ('ad', 'soyad', 'proje', 'anlasma_durumu')
-    list_filter = ('proje', 'anlasma_durumu')
+    # Modelde 'anlasma_durumu' alanı yok. Hata almamak ve bilgiyi göstermek için bir metot tanımlıyoruz.
+    def malik_anlasma_durumu(self, obj):
+        # Malik'in en az bir hissesi imzalandıysa "İmzaladı" göster.
+        # Aksi takdirde, ilk hissesinin durumunu göster (daha doğru bir raporlama için).
+        imzali_hisse = obj.hisse_set.filter(durum='IMZALADI').first()
+        if imzali_hisse:
+            return imzali_hisse.get_durum_display()
+        
+        ilk_hisse = obj.hisse_set.first()
+        if ilk_hisse:
+            return ilk_hisse.get_durum_display()
+        return "Hisse Yok"
+
+    malik_anlasma_durumu.short_description = 'Anlaşma Durumu'
+    
+    # Düzeltme: 'anlasma_durumu' yerine artık metot çağrılıyor. 
+    # list_filter için Hisse modelindeki durumu kullanıyoruz.
+    list_display = ('ad', 'soyad', 'proje', 'malik_anlasma_durumu')
+    list_filter = ('proje', 'hisse__durum')
     search_fields = ('ad', 'soyad', 'proje__proje_adi')
 
 @admin.register(Hisse, site=kpy_admin_site)
@@ -37,11 +53,11 @@ class HisseAdmin(admin.ModelAdmin):
 
 @admin.register(GorusmeKaydi, site=kpy_admin_site)
 class GorusmeKaydiAdmin(admin.ModelAdmin):
-    # Modeldeki doğru alan adları 'kullanici' ve 'tarih' kullanıldı
-    list_display = ('malik', 'kullanici', 'tarih', 'gorusme_sonucu', 'direnc_nedeni')
-    list_filter = ('malik__proje', 'kullanici', 'gorusme_sonucu', 'direnc_nedeni')
-    search_fields = ('malik__ad', 'malik__soyad', 'ozet')
-
+    # Düzeltme: 'kullanici' yerine 'gorusmeyi_yapan_personel' ve 'tarih' yerine 'gorusme_tarihi' kullanıldı.
+    list_display = ('malik', 'gorusmeyi_yapan_personel', 'gorusme_tarihi', 'gorusme_sonucu', 'direnc_nedeni')
+    list_filter = ('malik__proje', 'gorusmeyi_yapan_personel', 'gorusme_sonucu', 'direnc_nedeni')
+    search_fields = ('malik__ad', 'malik__soyad', 'gorusme_ozeti') # 'ozet' alanı 'gorusme_ozeti' olarak düzeltildi
+    
 @admin.register(Evrak, site=kpy_admin_site)
 class EvrakAdmin(admin.ModelAdmin):
     list_display = ('proje', 'malik', 'evrak_tipi', 'dosya', 'olusturulma_tarihi')
