@@ -8,6 +8,10 @@ from kpy_sistemi.admin import kpy_admin_site
 class CustomUserAdmin(UserAdmin):
     model = Kullanici
     
+    list_display = ('username', 'email', 'first_name', 'last_name', 'telefon', 'is_staff')
+    list_filter = ('is_staff', 'is_superuser', 'groups')
+    search_fields = ('username', 'first_name', 'last_name', 'email', 'telefon')
+    
     # Modeldeki doğru alan adı 'telefon' kullanıldı
     fieldsets = UserAdmin.fieldsets + (
         ('Şirket Bilgileri', {'fields': ('telefon',)}),
@@ -15,9 +19,7 @@ class CustomUserAdmin(UserAdmin):
     add_fieldsets = UserAdmin.add_fieldsets + (
         ('Şirket Bilgileri', {'fields': ('telefon',)}),
     )
-    list_display = ('username', 'email', 'first_name', 'last_name', 'telefon', 'is_staff')
-    list_filter = ('is_staff', 'is_superuser', 'groups')
-    search_fields = ('username', 'first_name', 'last_name', 'email', 'telefon')
+
 
 @admin.register(Gorev, site=kpy_admin_site) 
 class GorevAdmin(admin.ModelAdmin):
