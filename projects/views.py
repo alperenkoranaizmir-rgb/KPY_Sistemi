@@ -1,34 +1,35 @@
 from django.shortcuts import render
 from django.contrib.admin.views.decorators import staff_member_required
-from django.db.models import Count
+from django.db.models import Count, Sum, Q, F # Tüm gerekli importlar tek satırda toplandı
 from django.http import Http404, HttpResponseForbidden 
 from django.contrib import admin
-from django.contrib.auth.decorators import login_required # Yeni rapor için eklendi
+from django.contrib.auth.decorators import login_required 
 
-from projects.models import GorusmeKaydi, Proje
+# Modellerin import edilmesi (Huni raporunun çalışması için kritik)
+from projects.models import GorusmeKaydi, Proje, Malik, Hisse 
 from .choices import DirencNedenleri # projects/choices.py dosyasından import ediliyor
 
-from django.db.models import Sum, Q, F # Yeni importlar eklendi
 
 # -----------------------------------------------------------------
-# MALİK DİRENÇ ANALİZİ RAPORU (Sizin sağladığınız kod)
+# 1. MALİK DİRENÇ ANALİZİ RAPORU
 # -----------------------------------------------------------------
 @staff_member_required
 def direnc_analizi_raporu(request):
     """
-    Malik Direnç Analizi Raporu: Artık SADECE SÜPER KULLANICILAR içindir
-    ve TÜM PROJELERİ kapsar.
+    Malik Direnç Analizi Raporu: Sadece Süper Kullanıcılar için, tüm aktif projeleri kapsar.
     """
-    # KRİTİK DÜZELTME: Sadece süper kullanıcılar bu raporu görebilir.
     if not request.user.is_superuser:
-        # Yetkisi yoksa 403 Hatası döndür
         return HttpResponseForbidden("Bu sayfayı görüntüleme yetkiniz yok.")
         
-    # KRİTİK DÜZELTME: Rapor artık global.
     yetkili_projeler_qs = Proje.objects.filter(aktif_mi=True)
 
     if not yetkili_projeler_qs.exists():
-        return render(request, 'projects/direnc_analizi.html', {'hata_mesaji': "Sistemde henüz aktif proje bulunmamaktadır."})
+        context = {
+            **admin.site.each_context(request),
+            'baslik': "Genel Malik Direnç Analizi Raporu",
+            'hata_mesaji': "Sistemde henüz aktif proje bulunmamaktadır."
+        }
+        return render(request, 'projects/direnc_analizi.html', context)
 
     # Raporlama mantığı (Tüm projeler üzerinden)
     gorusmeler_qs = GorusmeKaydi.objects.filter(
@@ -56,7 +57,6 @@ def direnc_analizi_raporu(request):
             })
 
     context = {
-        # Admin arayüzü ile uyumluluk için gerekli
         **admin.site.each_context(request), 
         
         'baslik': "Genel Malik Direnç Analizi Raporu",
@@ -70,44 +70,37 @@ def direnc_analizi_raporu(request):
 
 
 # -----------------------------------------------------------------
-# YENİ EKLENEN RAPOR (HATA KAYNAĞI ÇÖZÜMÜ)
+# 2. PROJE İLERLEME HUNİSİ RAPORU (Düzeltilmiş ve Temizlenmiş)
 # -----------------------------------------------------------------
-@login_required 
-def ilerleme_hunisi_raporu(request):
-    """
-    Proje İlerleme Hunisi Raporu Sayfası için yer tutucu.
-    Bu fonksiyonun tanımlanması, 'AttributeError' hatasını giderecektir.
-    """
-    context = {
-        # Admin arayüzü ile uyumluluk için gerekli
-        **admin.site.each_context(request), 
-        'baslik': "Proje İlerleme Hunisi Raporu",
-        'message': "Bu rapor sayfası henüz tamamlanmadı. Proje bazında imza, görüşme ve tahliye akışı (funnel) verileri işlenecektir."
-    }
-    # Mevcut rapor template'ini (projects/direnc_analizi.html) yeniden kullanarak 
-    # görsel tutarlılık sağlandı ve yeni bir template oluşturma ihtiyacı geçici olarak ertelendi.
-    return render(request, 'projects/direnc_analizi.html', context)
-
-
 @login_required 
 def ilerleme_hunisi_raporu(request):
     """
     Proje İlerleme Hunisi Raporu: Proje bazında imza ve görüşme akışını izler.
     """
-    # Proje Filtresi
     proje_id = request.GET.get('proje')
     yetkili_projeler_qs = Proje.objects.filter(aktif_mi=True)
     
-    if proje_id:
-        try:
-            secili_proje = yetkili_projeler_qs.get(id=proje_id)
-        except Proje.DoesNotExist:
-            return render(request, 'projects/direnc_analizi.html', 
-                          {'hata_mesaji': "Seçilen proje bulunamadı veya yetkiniz yok."})
-    else:
-        # Eğer proje seçilmezse, kullanıcıya seçim yapması gerektiğini bildirin
-        return render(request, 'projects/direnc_analizi.html', 
-                      {'hata_mesaji': "Lütfen bir proje seçerek ilerleme hunisini görüntüleyiniz."})
+    if not proje_id:
+        # Eğer proje seçilmezse, kullanıcıya seçim yapması gerektiğini bildiren ekranı göster
+        context = {
+            **admin.site.each_context(request),
+            'baslik': "Proje İlerleme Hunisi Raporu",
+            'yetkili_projeler_qs': yetkili_projeler_qs, 
+            'hata_mesaji': "Lütfen yukarıdaki menüden bir proje seçerek raporu görüntüleyiniz."
+        }
+        return render(request, 'projects/ilerleme_hunisi.html', context) 
+        
+    # Proje Seçimi ve Hata Kontrolü
+    try:
+        secili_proje = yetkili_projeler_qs.get(id=proje_id)
+    except Proje.DoesNotExist:
+        context = {
+            **admin.site.each_context(request),
+            'baslik': "Proje İlerleme Hunisi Raporu",
+            'yetkili_projeler_qs': yetkili_projeler_qs,
+            'hata_mesaji': "Seçilen proje bulunamadı veya yetkiniz yok."
+        }
+        return render(request, 'projects/ilerleme_hunisi.html', context)
 
     # --- RAPOR MANTIĞI: İLERLEME HUNI VERİSİ ---
     
@@ -115,21 +108,18 @@ def ilerleme_hunisi_raporu(request):
     toplam_malik_sayisi = Malik.objects.filter(proje=secili_proje).count()
 
     # 2. GÖRÜŞÜLEN MALİK SAYISI
-    # (Görüşme kaydı olan tüm malikler)
     gorusulen_malik_sayisi = Malik.objects.filter(
         proje=secili_proje,
         gorusmekaydi__isnull=False
     ).distinct().count()
 
     # 3. OLUMLU BAKAN MALİK SAYISI
-    # (En az bir görüşme kaydı sonucu OLUMLU olan malikler)
     olumlu_bakan_malik_sayisi = Malik.objects.filter(
         proje=secili_proje,
         gorusmekaydi__gorusme_sonucu=GorusmeKaydi.GorusmeSonucu.OLUMLU
     ).distinct().count()
 
     # 4. İMZALAYAN MALİK SAYISI
-    # (En az bir hisse kaydı durumu IMZALADI olan malikler)
     imzalayan_malik_sayisi = Malik.objects.filter(
         proje=secili_proje,
         hisse__durum=Hisse.ImzaDurumu.IMZALADI
@@ -155,5 +145,5 @@ def ilerleme_hunisi_raporu(request):
         'huni_verisi': huni_verisi
     }
     
-    # Mevcut template'i yeniden kullanıldı
-    return render(request, 'projects/direnc_analizi.html', context)
+    # Yeni ve doğru template dosyası kullanılıyor
+    return render(request, 'projects/ilerleme_hunisi.html', context)

@@ -1,0 +1,103 @@
+{% extends 'admin/base.html' %}
+{% load i18n jazzmin %}
+
+{% block title %}{{ baslik }}{% endblock %}
+
+{% block content_title %}{{ baslik }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-primary card-outline">
+                <div class="card-header">
+                    <h3 class="card-title">Proje Seçimi</h3>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="form-inline">
+                        <label for="id_proje" class="mr-2">Proje Seçiniz:</label>
+                        <select name="proje" id="id_proje" class="form-control mr-3">
+                            <option value="">-- Proje Seç --</option>
+                            {% for proje in yetkili_projeler_qs %}
+                                <option value="{{ proje.id }}" {% if proje.id|safe == request.GET.proje %}selected{% endif %}>
+                                    {{ proje.proje_adi }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-primary">Raporu Göster</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if hata_mesaji %}
+    <div class="alert alert-warning" role="alert">
+        {{ hata_mesaji }}
+    </div>
+    {% elif huni_verisi and secili_proje %}
+    
+    <h4 class="mt-3">{{ secili_proje.proje_adi }} Projesi İlerleme Durumu</h4>
+    <div class="row">
+        {% for item in huni_verisi %}
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-{% if forloop.first %}info{% elif item.sayi == secili_proje.cached_toplam_malik_sayisi %}success{% else %}warning{% endif %}">
+                <div class="inner">
+                    <h3>{{ item.sayi|default:0 }} <sup style="font-size: 20px">Kişi</sup></h3>
+                    <p>{{ item.etiket }}</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <span class="small-box-footer">
+                    {% if not forloop.first %}
+                        %{{ item.yuzde }} (Toplam Malike Oranı)
+                    {% else %}
+                        Temel Sayı
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">İlerleme Hunisi Detayı</h3>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Adım</th>
+                                <th>Malik Sayısı</th>
+                                <th>Yüzdelik Oran (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in huni_verisi %}
+                            <tr>
+                                <td><i class="fas fa-angle-right mr-2"></i> {{ item.etiket }}</td>
+                                <td>{{ item.sayi }}</td>
+                                <td>
+                                    <div class="progress progress-xs">
+                                        <div class="progress-bar progress-bar-striped bg-{% if forloop.last %}success{% elif forloop.first %}info{% else %}warning{% endif %}" 
+                                             style="width: {{ item.yuzde }}%">
+                                        </div>
+                                    </div>
+                                    <span class="badge bg-{% if forloop.last %}success{% elif forloop.first %}info{% else %}warning{% endif %}">{{ item.yuzde }}%</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

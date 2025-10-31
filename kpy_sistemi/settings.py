@@ -278,11 +278,18 @@ JAZZMIN_SETTINGS = {
             "projects.GorusmeKaydi",
         ]},
 
-        # 4. SAHA & İŞ YÖNETİMİ (*** EKSİK MENÜ EKLENDİ ***)
-        # README.md'deki Madde 4'e göre eklendi.
+        # 4. SAHA & İŞ YÖNETİMİ
         {"app": "saha", "name": "SAHA & İŞ YÖNETİMİ", "icon": "fas fa-hard-hat", "models": [
-            "saha.GunlukRapor",   # Lütfen bu model isimlerinin saha/models.py'de var olduğundan emin olun.
-            "saha.TahliyeTakibi", # Lütfen bu model isimlerinin saha/models.py'de var olduğundan emin olun.
+            # KRİTİK DÜZELTME: Bu bir model değil, bir rapor/dashboard. 
+            # Bu menü öğesini models listesinden çıkarıp custom link ekleyelim.
+
+            # Bu kısmı (modelleri listelemek yerine) URL'ye yönlendirelim:
+            {"name": "Saha Yönetim Paneli", "url": "saha:saha_dashboard", "icon": "fas fa-tachometer-alt"},
+            "saha.TahliyeTakibi",   # Tahliye Takibine doğrudan link
+            "saha.GunlukSahaRaporu", # Günlük Raporlara doğrudan link
+            # Eksik modelleri de ekleyelim (Eski admin.py'de vardı)
+            {"model": "saha.Taseron", "label": "Taşeron Yönetimi"},
+            {"model": "saha.IsTakvimiGorevi", "label": "İş Takvimi ve Görevler"},
         ]},
         
         # 5. DİJİTAL ARŞİV (DMS)
