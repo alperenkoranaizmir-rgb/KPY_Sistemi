@@ -1,6 +1,7 @@
 # /kpy_sistemi/settings.py (NİHAİ VE TEMİZLENMİŞ VERSİYON)
 
 from pathlib import Path
+from django.utils import timezone # Celery Beat ve Migration'lar için eklendi
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,20 +22,21 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'jazzmin',  # Yeni AdminLTE Teması
-    'users',    # User Modülü
-    'projects', # Project Modülü
-    'finance',  # Finans Modülü
-    'envanter', # envanter Modülü
-    'saha',     # saha Modülü
-
+    'jazzmin',
+    'users',       # Sizin özel kullanıcı uygulamanız
+    'projects',    # Proje çekirdek modülü
+    'finance',     # Finans ve bütçe modülü
+    'envanter',    # Yeni envanter modülü
+    'saha',        # Saha operasyonları modülü
+    
+    # Django'nun standart uygulamaları
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.humanize', 
+    'django.contrib.humanize',
 ]
 
 MIDDLEWARE = [
@@ -119,13 +121,9 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Projenin varsayılan Kullanıcı modelini bizim oluşturduğumuz modelle değiştiriyoruz.
-# Format: 'uygulama_adi.ModelAdi'
+# KULLANICI MODELİNİ AYARLAMA: Django'ya Kullanici modelinizi kullanmasını söyler
 AUTH_USER_MODEL = 'users.Kullanici'
 
-
-
-STATIC_URL = 'static/'
 
 # Adım 18'de 'collectstatic' komutunun dosyaları toplayacağı ana klasör
 # Proje ana dizininde (manage.py'nin yanında) 'staticfiles' adında bir klasör oluşturacak
@@ -239,11 +237,15 @@ JAZZMIN_SETTINGS = {
         "projects.ProjeYetkisi": "fas fa-user-shield",
         "finance.MaliyetKalemi": "fas fa-tags",
         "finance.Maliyet": "fas fa-dollar-sign",
-        "envanter.Demirbas": "fas fa-laptop",
-        "envanter.Zimmet": "fas fa-exchange-alt",
+        "finance.Butce": "fas fa-money-check-alt", # Bütçe modelini de ikonlara ekledik
         
-        # SAHA MODÜLÜ İKONLARI EKLENDİ
-        # GunlukRapor yerine GunlukSahaRaporu kullanıldı
+        # *** GÜNCELLENDİ: Envanter Model İsimleri ***
+        "envanter.Envanter": "fas fa-laptop",       
+        "envanter.KullanimKaydi": "fas fa-exchange-alt", 
+        "envanter.EnvanterKategorisi": "fas fa-folder-open", # Yeni kategori modeli
+        # *** GÜNCELLENDİ SONU ***
+        
+        # SAHA MODÜLÜ İKONLARI
         "saha.GunlukSahaRaporu": "fas fa-file-invoice", 
         "saha.TahliyeTakibi": "fas fa-house-damage",
         "saha.Taseron": "fas fa-hard-hat",
@@ -275,14 +277,13 @@ JAZZMIN_SETTINGS = {
             "projects.GorusmeKaydi",
         ]},
         
-        # 4. SAHA & İŞ YÖNETİMİ (DÜZELTİLMİŞ ITEMS YAPISI)
+        # 4. SAHA & İŞ YÖNETİMİ
         {"app": "saha", "name": "SAHA & İŞ YÖNETİMİ", "icon": "fas fa-hard-hat", "items": [
             # 4.1. Saha Yönetim Paneli (Custom View)
             {"name": "Saha Yönetim Paneli", "url": "saha:saha_dashboard", "icon": "fas fa-tachometer-alt"},
             
             # 4.2. Saha Modelleri (Etiketler netleştirildi)
             {"model": "saha.TahliyeTakibi", "label": "Tahliye Takip Kayıtları"},
-            # SahaRaporu ve GunlukSahaRaporu'nun çakışmasını engellemek için ikisi de açıkça etiketlendi
             {"model": "saha.GunlukSahaRaporu", "label": "Günlük Saha Raporu (Yeni)"},
             {"model": "saha.SahaRaporu", "label": "Günlük Saha Raporu (Eski/Fazla)"},
             {"model": "saha.Taseron", "label": "Taşeron Yönetimi"},
@@ -294,17 +295,20 @@ JAZZMIN_SETTINGS = {
             "projects.Evrak",
         ]},
 
-        # 6. BÜTÇE & MALİYET
+        # 6. BÜTÇE & MALİYET (Butce modelini ekledik)
         {"app": "finance", "name": "BÜTÇE & MALİYET", "icon": "fas fa-money-bill-wave", "models": [
+            "finance.Butce", # Bütçe modelini ekledik
             "finance.Maliyet",
             {"model": "finance.MaliyetKalemi", "label": "Maliyet Kalemleri (Tanım)"},
         ]},
         
-        # 7. İK & ENVANTER YÖNETİMİ
-        {"app": "envanter", "name": "İK & ENVANTER YÖNETİMİ", "icon": "fas fa-box", "models": [
-            "envanter.Demirbas",
-            "envanter.Zimmet",
+        # *** GÜNCELLENDİ: Envanter Menüsü ***
+        {"app": "envanter", "name": "ENVANTER YÖNETİMİ", "icon": "fas fa-box", "models": [
+            {"model": "envanter.Envanter", "label": "Varlıklar (Envanter)"},
+            {"model": "envanter.KullanimKaydi", "label": "Kullanım Kayıtları"},
+            {"model": "envanter.EnvanterKategorisi", "label": "Envanter Kategorileri"},
         ]},
+        # *** GÜNCELLENDİ SONU ***
         
         # 8. İLETİŞİM & BİLDİRİMLER
         {
@@ -312,16 +316,16 @@ JAZZMIN_SETTINGS = {
             "icon": "fas fa-bell",
             "items": [
                 {
-                   'name': 'Toplu SMS/E-Posta Gönderimi',
-                   'url': 'users:toplu_bildirim',
-                   'icon': 'fas fa-paper-plane',
-                   'permissions': ['auth.view_user'],
+                    'name': 'Toplu SMS/E-Posta Gönderimi',
+                    'url': 'users:toplu_bildirim',
+                    'icon': 'fas fa-paper-plane',
+                    'permissions': ['auth.view_user'],
                 },
                 {
-                   'name': 'Otomasyon Yönetimi (Celery)',
-                   'url': 'admin:dogum_gunu_otomasyon',
-                   'icon': 'fas fa-robot',
-                   'permissions': ['auth.view_group'], 
+                    'name': 'Otomasyon Yönetimi (Celery)',
+                    'url': 'admin:dogum_gunu_otomasyon',
+                    'icon': 'fas fa-robot',
+                    'permissions': ['auth.view_group'], 
                 },
             ]
         },
@@ -338,10 +342,10 @@ JAZZMIN_SETTINGS = {
                     "permissions": ["auth.view_group"]
                 },
                 {
-                   'name': 'Bütçe vs. Fiili Raporu',
-                   'url': 'finance:butce_vs_fiili_raporu', 
-                   'icon': 'fas fa-money-check-alt',
-                   'permissions': ['auth.view_user'], 
+                    'name': 'Bütçe vs. Fiili Raporu',
+                    'url': 'finance:butce_vs_fiili_raporu', 
+                    'icon': 'fas fa-money-check-alt',
+                    'permissions': ['auth.view_user'], 
                 },
                 {
                     'name': 'Proje İlerleme Hunisi',

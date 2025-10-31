@@ -1,37 +1,37 @@
-from django.db.models.signals import post_save, post_delete
+# envanter/signals.py - DÜZELTİLMİŞ İÇERİK
+from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Zimmet, Demirbas
+# Yeni model isimlerini import ediyoruz: Envanter ve KullanimKaydi
+from .models import Envanter, KullanimKaydi 
+from django.utils import timezone
 
-@receiver(post_save, sender=Zimmet)
-def zimmet_kaydi_guncellendi(sender, instance, created, **kwargs):
+
+@receiver(post_save, sender=KullanimKaydi)
+def kullanim_kaydi_olusturuldu_veya_guncellendi(sender, instance, created, **kwargs):
     """
-    Zimmet kaydı oluşturulduğunda (created=True) veya güncellendiğinde (created=False) çalışır.
-    İlgili Demirbaş'ın durumunu otomatik olarak günceller.
+    KullanimKaydi (eski Zimmet) oluşturulduğunda veya güncellendiğinde 
+    ilgili Envanter'in (eski Demirbas) durumunu otomatik olarak günceller.
     """
-    demirbas = instance.demirbas
     
-    if instance.iade_tarihi is None:
-        # Zimmet kaydı, iade tarihi boşsa (yani zimmetliyse)
-        yeni_durum = Demirbas.DemirbasDurumu.KULLANIMDA
-    else:
-        # Zimmet kaydı, iade tarihi doluysa (yani iade edilmişse)
-        yeni_durum = Demirbas.DemirbasDurumu.DEPO
+    # 1. Eğer yeni bir kullanım kaydı oluşturulduysa VEYA 
+    #    Kullanım kaydında bitiş tarihi HENÜZ belirlenmediyse (aktif kullanım)
+    if created or not instance.bitis_tarihi:
+        # Envanterin durumunu "Aktif Kullanımda" olarak ayarla
+        if instance.envanter.durum != Envanter.DurumSecenekleri.AKTIF:
+            instance.envanter.durum = Envanter.DurumSecenekleri.AKTIF
+            instance.envanter.save()
+            
+    # 2. Eğer kullanım kaydı TAMAMLANDIYSA (bitis_tarihi eklendiyse)
+    elif instance.bitis_tarihi:
         
-    # Sadece durum değişmişse veritabanını güncelleyerek gereksiz kaydetme işlemini önle
-    if demirbas.durum != yeni_durum:
-        demirbas.durum = yeni_durum
-        demirbas.save()
+        # Bu envanter için başka aktif bir kullanım kaydı var mı kontrol et
+        aktif_kullanim_var_mi = KullanimKaydi.objects.filter(
+            envanter=instance.envanter,
+            bitis_tarihi__isnull=True # Bitiş tarihi olmayan kayıt
+        ).exclude(pk=instance.pk).exists() # Mevcut kaydı hariç tut
 
-
-@receiver(post_delete, sender=Zimmet)
-def zimmet_kaydi_silindi(sender, instance, **kwargs):
-    """
-    Zimmet kaydı silindiğinde (post_delete), ilgili Demirbaş'ın durumunu Depoya döndürür.
-    """
-    # Silme işlemi gerçekleştiği anda demirbaşı depoya döndür.
-    demirbas = instance.demirbas
-    demirbas.durum = Demirbas.DemirbasDurumu.DEPO
-    demirbas.save()
-    
-    # HATA AYIKLAMA İÇİN EK NOT (SİLİN): Silme işlemi çalışmazsa bu print terminalde görünür:
-    # print(f"DEBUG: Zimmet silindi. {demirbas.ad} Depoya döndürüldü.")
+        # Eğer başka aktif kullanım yoksa, envanteri 'Depoda' olarak ayarla
+        if not aktif_kullanim_var_mi:
+            if instance.envanter.durum != Envanter.DurumSecenekleri.DEPO:
+                instance.envanter.durum = Envanter.DurumSecenekleri.DEPO
+                instance.envanter.save()
