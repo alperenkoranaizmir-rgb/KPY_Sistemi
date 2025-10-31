@@ -5,7 +5,8 @@ from django.db.models import Sum, Q, DecimalField
 from projects.models import Proje, Malik
 from finance.models import Maliyet
 from users.models import Gorev
-from saha.models import Taseron, SahaRaporu, TahliyeTakibi, IsTakvimiGorevi # <-- HATA BURADAYDI, DÜZELTİLDİ
+# HATA DÜZELTİLDİ: SahaRaporu yerine GunlukSahaRaporu kullanıldı.
+from saha.models import Taseron, GunlukSahaRaporu, TahliyeTakibi, IsTakvimiGorevi
 from django.contrib.admin import AdminSite
 from django.db.models.functions import Coalesce
 from django.urls import path
