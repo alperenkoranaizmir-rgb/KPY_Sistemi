@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings # AUTH_USER_MODEL'i (Kullanici modelimizi) çekmek için
-from .choices import DirencNedenleri # Yeni dosyayı import ediyoruz
+from .choices import DirencNedenleri # Artık merkezi dosyadan import ediyoruz!
 
 class Proje(models.Model):
     """
@@ -242,16 +242,8 @@ class GorusmeKaydi(models.Model):
     Saha temsilcisinin malik ile yaptığı görüşmelerin kaydı.
     CRM modülünün en aktif kullanılan parçası olacaktır.
     """
-    # projects/models.py dosyasında, GorusmeKaydi'nın üstüne ekleyin
-
-    class DirencNedenleri(models.TextChoices):
-        YOK = 'YOK', 'Anlaşma Yok/Gerekli Değil'
-        FIYAT = 'FIYAT', 'Fiyat Teklifi Yetersiz'
-        VERASET = 'VERASET', 'Veraset/Miras Sorunu'
-        PLAN = 'PLAN', 'Yeni Proje Planını Beğenmeme'
-        KIRACI = 'KIRACI', 'Kiracı Sorunu/Tahliye'
-        DIGER = 'DIGER', 'Diğer/Özel Durum'
-
+    # *** DÜZELTME BAŞLANGICI: DirencNedenleri sınıfı buradan kaldırılmıştır. projects/choices.py dosyasından import edilmektedir. ***
+    
     class GorusmeSonucu(models.TextChoices):
         OLUMLU = 'OLUMLU', 'Olumlu'
         OLUMSUZ = 'OLUMSUZ', 'Olumsuz'
@@ -289,7 +281,8 @@ class GorusmeKaydi(models.Model):
     # Yeni Analiz Alanı
     direnc_nedeni = models.CharField(
         max_length=50,
-        choices=DirencNedenleri.choices,
+        # choices artık dışarıdan (from .choices import DirencNedenleri) gelen sınıfı kullanıyor
+        choices=DirencNedenleri.choices, 
         default=DirencNedenleri.YOK,
         verbose_name="Malik Direnç Nedeni"
     )
