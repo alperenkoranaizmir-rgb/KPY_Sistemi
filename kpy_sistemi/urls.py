@@ -1,26 +1,28 @@
-# kpy_sistemi/urls.py
-from django.conf import settings
+from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
 from django.conf.urls.static import static
 
-# KPY'deki özel admin sitesini içeri aktarın
-from kpy_sistemi.admin import kpy_admin_site 
+# kpy_sistemi/admin.py dosyasındaki 'index' fonksiyonunu kaldırdık
+# çünkü kpy_sistemi.admin modülünde bir 'index' fonksiyonu tanımlı değil.
+# path('admin/', kpy_admin_views.index, name='admin:index'), satırını yoruma aldık/sildik.
 
 urlpatterns = [
-    # KRİTİK DÜZELTME: Varsayılan admin.site.urls yerine kpy_admin_site kullanıldı.
-    path('admin/', kpy_admin_site.urls),  
+    # Ana admin URL'si. Özel index.html template'i varsa, Django bunu otomatik kullanır.
+    path('admin/', admin.site.urls), 
 
-    # Uygulama URL'leri
-    path('users/', include('users.urls')),
+    # Uygulama URL'lerinin dahil edilmesi
     path('projects/', include('projects.urls')),
     path('finance/', include('finance.urls')),
     path('saha/', include('saha.urls')),
-    # Envanter uygulaması için de URL tanımlamayı unutmayın (Eğer varsa).
-    # path('envanter/', include('envanter.urls')),
+    path('users/', include('users.urls')),
+    # 'envanter' uygulaması için bir urls.py dosyası oluşturmadıysanız, 
+    # ona ait custom bir URL eklemenize gerek yoktur.
+
 ]
 
-# Geliştirme ortamı için Medya dosyalarını sunma ayarı
+# MEDIA_ROOT ve MEDIA_URL ayarları
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     
-# Not: settings.py'de ROOT_URLCONF = 'kpy_sistemi.urls' ayarının doğru olduğundan emin olun.
+# Not: settings.py dosyasında DEBUG=True olduğu için static dosyalar için bu yeterlidir.

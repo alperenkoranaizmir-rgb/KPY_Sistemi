@@ -1,175 +1,185 @@
-# projects/admin.py (DÜZELTİLMİŞ VE OPTİMİZE EDİLMİŞ ÇÖZÜM)
-
 from django.contrib import admin
-from .models import Proje, ProjeYetkisi, Malik, BagimsizBolum, Hisse, GorusmeKaydi, Evrak
-from kpy_sistemi.admin import kpy_admin_site 
+from django.utils.html import format_html
+from django.db.models import Sum
+from .models import (
+    Proje, ProjeYetkisi, Malik, BagimsizBolum, Hisse, 
+    GorusmeKaydi, Evrak
+)
 
+# ----------------------------------------------------------------------
+# INLINES
+# ----------------------------------------------------------------------
 
-# -----------------------------------------------------------------
-# INLINE TANIMLAMALARI (Optimizasyon için)
-# -----------------------------------------------------------------
-
-# Proje Yetkilendirme için Inline (Mevcut)
 class ProjeYetkisiInline(admin.TabularInline):
     model = ProjeYetkisi
     extra = 1
+    raw_id_fields = ('kullanici',)
+    verbose_name = "Yetkili Kullanıcı"
+    verbose_name_plural = "Proje Yetkilileri"
 
-# Malik'in Hisselerini Malik değiştirme sayfasında göstermek için
+
 class HisseInline(admin.TabularInline):
     model = Hisse
-    extra = 0 # Yeni hisse ekleme varsayılan olarak kapalı (önce BB ve Malik olmalı)
-    # Hangi alanların gösterileceğini ve düzenleneceğini belirliyoruz
-    fields = ('bagimsiz_bolum', 'hisse_orani', 'durum')
-    # Sadece ilgili Bağımsız Bölümleri seçmek için filtreleme sağlar
-    raw_id_fields = ('bagimsiz_bolum',) 
+    extra = 0
+    raw_id_fields = ('bagimsiz_bolum',)
+    fields = ('malik', 'hisse_orani_pay', 'hisse_orani_payda', 'durum', 'imza_tarihi')
+    readonly_fields = ('arsa_payi_hesapla',)
     
-# Malik'in Görüşme Kayıtlarını Malik değiştirme sayfasında göstermek için (CRM)
-class GorusmeKaydiInline(admin.TabularInline):
-    model = GorusmeKaydi
-    extra = 1
-    # Personel ve Tarihi sadece okuma modunda göstererek karmaşıklığı azaltırız
-    readonly_fields = ('gorusmeyi_yapan_personel', 'gorusme_tarihi')
-    # Sadece malik ve özeti girmesi yeterli
-    fields = ('gorusme_ozeti', 'gorusme_sonucu', 'direnc_nedeni')
+    def arsa_payi_hesapla(self, obj):
+        if obj.bagimsiz_bolum and obj.bagimsiz_bolum.arsa_payi and obj.hisse_orani_pay and obj.hisse_orani_payda:
+            payi = obj.bagimsiz_bolum.arsa_payi.pay
+            paydasi = obj.bagimsiz_bolum.arsa_payi.payda
+            hisse_oran_degeri = obj.hisse_orani_pay / obj.hisse_orani_payda if obj.hisse_orani_payda else 0
+            arsa_payi = (payi / paydasi) * hisse_oran_degeri
+            return format_html(f"**{arsa_payi:.4f}** / {paydasi}")
+        return "-"
+    arsa_payi_hesapla.short_description = "Hisse Arsa Payı"
 
 
-# -----------------------------------------------------------------
-# MODEL ADMIN SINIFLARI
-# -----------------------------------------------------------------
+class MalikInline(admin.TabularInline):
+    model = Malik
+    extra = 0
+    fields = ('ad_soyad', 'telefon', 'e_posta', 'adres')
+    verbose_name = "Malik Bilgisi"
+    verbose_name_plural = "Malikler"
 
-@admin.register(Proje, site=kpy_admin_site) 
+
+# ----------------------------------------------------------------------
+# ADMINS
+# ----------------------------------------------------------------------
+
+@admin.register(Proje)
 class ProjeAdmin(admin.ModelAdmin):
-    list_display = ('proje_adi', 'aktif_mi', 'proje_konumu', 'cached_imza_arsa_payi', 'cached_toplam_malik_sayisi', 'arsa_paydasi_ortak') # Yeni alan eklendi
-    list_filter = ('aktif_mi',)
-    search_fields = ('proje_adi', 'proje_konumu')
-    # Proje Yetkisi Inline'ı burada kullanılıyor
+    # Proje listeleme ve filtreleme
+    list_display = (
+        'proje_adi', 'il', 'ilce', 'aktif_mi', 'toplam_malik_sayisi', 
+        'imzali_arsa_payi_gorunumu', 'toplam_butce_gorunumu'
+    )
+    list_filter = ('aktif_mi', 'il', 'ilce')
+    search_fields = ('proje_adi', 'ada_parsel')
     inlines = [ProjeYetkisiInline]
-    readonly_fields = ('cached_imza_arsa_payi', 'cached_toplam_malik_sayisi')
+    
+    # Detay sayfası alanları
     fieldsets = (
         (None, {
-            'fields': ('proje_adi', 'aktif_mi', 'aciklama'),
+            'fields': ('proje_adi', 'ada_parsel', 'aktif_mi', 'proje_amaci')
         }),
-        ('Kentsel Dönüşüm Ayarları', {
-            'fields': ('proje_konumu', 'toplam_butce', 'arsa_paydasi_ortak'), # arsa_paydasi_ortak buraya eklendi
-            'description': "2/3 hesaplamaları için kritik temel ayarlar.",
+        ('Konum Bilgileri', {
+            'fields': ('il', 'ilce', 'mahalle', 'adres')
         }),
-        ('Otomatik İstatistikler', {
-            'fields': ('cached_imza_arsa_payi', 'cached_toplam_malik_sayisi'),
+        ('Finansal ve İstatistiksel Bilgiler (Otomatik)', {
+            'fields': ('toplam_butce_gorunumu', 'toplam_malik_sayisi', 'imzali_arsa_payi_gorunumu', 'arsa_paydasi_ortak'),
+            'classes': ('collapse',)
         }),
     )
-
-@admin.register(ProjeYetkisi, site=kpy_admin_site)
-class ProjeYetkisiAdmin(admin.ModelAdmin):
-    list_display = ('kullanici', 'proje', 'rol')
-    list_filter = ('proje', 'rol', 'kullanici')
-    search_fields = ('kullanici__username', 'proje__proje_adi')
-
-@admin.register(Malik, site=kpy_admin_site)
-class MalikAdmin(admin.ModelAdmin):
     
-    def malik_anlasma_durumu(self, obj):
-        imzali_hisse = obj.hisse_set.filter(durum='IMZALADI').first()
-        if imzali_hisse:
-            return f"✅ {imzali_hisse.get_durum_display()}"
+    readonly_fields = ('toplam_malik_sayisi', 'imzali_arsa_payi_gorunumu', 'toplam_butce_gorunumu', 'arsa_paydasi_ortak')
+
+    def save_model(self, request, obj, form, change):
+        # Proje Yetkisi atamadan önce modelin kaydedilmesi
+        super().save_model(request, obj, form, change)
         
-        ilk_hisse = obj.hisse_set.first()
-        if ilk_hisse:
-            return f"🟡 {ilk_hisse.get_durum_display()}"
-        return "❌ Hisse Yok"
+    def imzali_arsa_payi_gorunumu(self, obj):
+        return format_html(f"**{obj.cached_imza_arsa_payi:.4f}** / {obj.arsa_paydasi_ortak}")
+    imzali_arsa_payi_gorunumu.short_description = "İmzalı Arsa Payı"
 
-    malik_anlasma_durumu.short_description = 'Anlaşma Durumu'
+    def toplam_butce_gorunumu(self, obj):
+        # Maliyet ve Bütçe modelleri finance uygulamasında olduğu için bu alanı Proje modelinde tutmak daha verimli.
+        return format_html(f"<strong>{obj.toplam_butce:,.2f} TL</strong>")
+    toplam_butce_gorunumu.short_description = "Toplam Bütçe"
     
-    # KRİTİK DÜZELTME: inlines eklendi
-    inlines = [HisseInline, GorusmeKaydiInline]
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Toplam malik sayısını doğrudan annotate ile çekiyoruz
+        qs = qs.annotate(
+            _toplam_malik_sayisi=Count('malikler', distinct=True)
+        )
+        return qs
+
+    def toplam_malik_sayisi(self, obj):
+        return obj._toplam_malik_sayisi
+    toplam_malik_sayisi.short_description = "Malik Sayısı"
     
-    list_display = ('ad', 'soyad', 'proje', 'tc_kimlik_no', 'telefon_1', 'malik_anlasma_durumu')
-    list_filter = ('proje', 'hisse__durum')
-    search_fields = ('ad', 'soyad', 'tc_kimlik_no', 'telefon_1', 'proje__proje_adi')
+    # Change list için kolon sıralaması
+    toplam_butce_gorunumu.admin_order_field = 'toplam_butce'
+    imzali_arsa_payi_gorunumu.admin_order_field = 'cached_imza_arsa_payi'
+    toplam_malik_sayisi.admin_order_field = '_toplam_malik_sayisi'
+
+# ProjeYetkisi modelini doğrudan kaydetmeye gerek yok, çünkü ProjeInline içinde kullanılıyor.
+
+@admin.register(Malik)
+class MalikAdmin(admin.ModelAdmin):
+    list_display = ('proje', 'ad_soyad', 'telefon', 'e_posta', 'tc_kimlik_no')
+    list_filter = ('proje',)
+    search_fields = ('ad_soyad', 'tc_kimlik_no', 'telefon', 'e_posta')
+    inlines = [HisseInline]
+    raw_id_fields = ('proje',) # Proje seçimini kolaylaştırmak için
     
-    # Hukuki bilgi, iletişim ve doğum tarihi ayrı fieldset'lere ayrıldı.
     fieldsets = (
         (None, {
-            'fields': ('proje', ('ad', 'soyad'), 'tc_kimlik_no'),
+            'fields': ('proje', 'ad_soyad', 'cinsiyet', 'dogum_tarihi')
         }),
-        ('İletişim Bilgileri (CRM)', {
-            'fields': (('telefon_1', 'telefon_2'), 'email', 'adres', 'dogum_tarihi'),
-            'description': "Doğum tarihi, otomatik SMS otomasyonu için kullanılır."
-        }),
-    )
-
-
-@admin.register(Hisse, site=kpy_admin_site)
-class HisseAdmin(admin.ModelAdmin):
-    # KRİTİK DÜZELTME: list_display güncellendi.
-    list_display = ('malik', 'bagimsiz_bolum', 'hisse_orani', 'durum')
-    list_filter = ('malik__proje', 'durum') # İmza durumuna göre filtreleme eklendi
-    search_fields = ('malik__ad', 'malik__soyad', 'bagimsiz_bolum__ada', 'bagimsiz_bolum__parsel')
-    # Malik ve Bağımsız Bölüm ID'leri karmaşık olduğu için raw_id_fields kullanıldı
-    raw_id_fields = ('malik', 'bagimsiz_bolum') 
-    
-    # Hissenin ait olduğu proje otomatik olarak belirlenebilir, ancak manuel girişi de kolaylaştırmak için
-    # fieldsets kullanılarak düzenleme yapıldı.
-    fieldsets = (
-        (None, {
-            'fields': (('proje', 'malik'), 'bagimsiz_bolum', 'hisse_orani'),
-        }),
-        ('Süreç ve Hukuki Durum', {
-            'fields': ('durum',),
-            'description': "Malik ikna ve imza sürecindeki mevcut durumu."
+        ('İletişim Bilgileri', {
+            'fields': ('telefon', 'e_posta', 'adres')
         }),
     )
-
-
-@admin.register(GorusmeKaydi, site=kpy_admin_site)
-class GorusmeKaydiAdmin(admin.ModelAdmin):
-    list_display = ('malik', 'gorusmeyi_yapan_personel', 'gorusme_tarihi', 'gorusme_sonucu', 'direnc_nedeni')
-    list_filter = ('malik__proje', 'gorusmeyi_yapan_personel', 'gorusme_sonucu', 'direnc_nedeni')
-    search_fields = ('malik__ad', 'malik__soyad', 'gorusme_ozeti')
     
-    # Görüşme Kayıtları Admin'inde Malik seçimi kolaylaştırıldı
-    raw_id_fields = ('malik', 'gorusmeyi_yapan_personel')
-    
-
-@admin.register(Evrak, site=kpy_admin_site)
-class EvrakAdmin(admin.ModelAdmin):
-    # Düzeltme: 'dosya' yerine Evrak Adı ve Aktif Sürüm durumu eklendi
-    list_display = ('evrak_adi', 'proje', 'malik', 'evrak_tipi', 'aktif_surum_mu', 'olusturulma_tarihi')
-    list_filter = ('proje', 'evrak_tipi', 'malik', 'aktif_surum_mu')
-    search_fields = ('evrak_adi', 'proje__proje_adi', 'malik__ad', 'text_content')
-    # İlişkili alanlar için raw_id_fields kullanıldı
-    raw_id_fields = ('malik', 'hisse', 'bagimsiz_bolum', 'onceki_surum') 
-    
-    # Evrak Sürüm Kontrolü alanları ayrı bir başlık altına alındı
-    fieldsets = (
-        (None, {
-            'fields': ('proje', 'evrak_adi', 'evrak_tipi', 'dosya'),
-        }),
-        ('İlişkisel Bağlantılar', {
-            'fields': ('malik', 'hisse', 'bagimsiz_bolum'),
-            'description': "Evrağın ilgili olduğu Malik/Hisse/Mülkü seçiniz. Zorunlu değildir."
-        }),
-        ('Sürüm Kontrolü ve OCR', {
-            'fields': ('aktif_surum_mu', 'onceki_surum', 'text_content'),
-            'classes': ('collapse',), # Bu alanı varsayılan olarak gizler
-            'description': "Sadece aynı evrağın yeni sürümü yüklendiğinde düzenlenir."
-        }),
-    )
-
-
-@admin.register(BagimsizBolum, site=kpy_admin_site)
+@admin.register(BagimsizBolum)
 class BagimsizBolumAdmin(admin.ModelAdmin):
-    # KRİTİK DÜZELTME: arsa_payi ve arsa_paydasi eklendi
-    list_display = ('proje', 'ada', 'parsel', 'nitelik', 'arsa_payi', 'arsa_paydasi')
-    list_filter = ('proje', 'nitelik')
-    search_fields = ('proje__proje_adi', 'ada', 'parsel', 'pafta')
+    list_display = ('proje', 'bolum_no', 'kullanim_sekli', 'arsa_payi_oran_gorunumu')
+    list_filter = ('proje', 'kullanim_sekli')
+    search_fields = ('bolum_no',)
+    raw_id_fields = ('proje',)
+
+    def arsa_payi_oran_gorunumu(self, obj):
+        if obj.arsa_payi:
+            return f"{obj.arsa_payi.pay}/{obj.arsa_payi.payda}"
+        return "-"
+    arsa_payi_oran_gorunumu.short_description = "Arsa Payı"
     
-    # Mülkiyet Bilgileri ayrı bir Fieldset altına alındı
+@admin.register(Hisse)
+class HisseAdmin(admin.ModelAdmin):
+    list_display = ('malik', 'bagimsiz_bolum', 'hisse_oran_gorunumu', 'durum', 'imza_tarihi', 'son_gorusme_tarihi')
+    list_filter = ('durum', 'bagimsiz_bolum__proje')
+    search_fields = ('malik__ad_soyad', 'bagimsiz_bolum__bolum_no')
+    raw_id_fields = ('malik', 'bagimsiz_bolum')
+    
+    def hisse_oran_gorunumu(self, obj):
+        return f"{obj.hisse_orani_pay}/{obj.hisse_orani_payda}"
+    hisse_oran_gorunumu.short_description = "Hisse Oranı"
+
+    def son_gorusme_tarihi(self, obj):
+        # Son görüşme kaydını çekiyoruz
+        son_gorusme = obj.malik.gorusmekaydi_set.order_by('-gorusme_tarihi').first()
+        return son_gorusme.gorusme_tarihi if son_gorusme else 'Görüşme Yok'
+    son_gorusme_tarihi.short_description = "Son Görüşme"
+    
+@admin.register(GorusmeKaydi)
+class GorusmeKaydiAdmin(admin.ModelAdmin):
+    list_display = ('malik', 'gorusme_tarihi', 'gorusme_sonucu', 'gorusmeyi_yapan')
+    list_filter = ('gorusme_sonucu', 'gorusme_tarihi', 'gorusmeyi_yapan')
+    search_fields = ('malik__ad_soyad', 'gorusme_metni')
+    raw_id_fields = ('malik', 'gorusmeyi_yapan')
+    
     fieldsets = (
         (None, {
-            'fields': ('proje', ('ada', 'parsel', 'pafta'), 'nitelik'),
+            'fields': ('malik', 'gorusme_tarihi', 'gorusmeyi_yapan')
         }),
-        ('Arsa Payı Bilgileri (2/3 Hesabı)', {
-            'fields': (('arsa_payi', 'arsa_paydasi'), 'tapu_alani_m2'),
-            'description': "Projenin 2/3 hesabında kullanılacak ana veriler."
+        ('Görüşme Sonucu', {
+            'fields': ('gorusme_sonucu', 'direnc_nedeni', 'gorusme_metni')
         }),
     )
+
+@admin.register(Evrak)
+class EvrakAdmin(admin.ModelAdmin):
+    list_display = ('proje', 'evrak_adi', 'evrak_tipi', 'yuklenme_tarihi', 'dosya_indirme')
+    list_filter = ('evrak_tipi', 'proje')
+    search_fields = ('evrak_adi', 'aciklama')
+    raw_id_fields = ('proje', 'bagimsiz_bolum', 'malik')
+    
+    def dosya_indirme(self, obj):
+        if obj.dosya:
+            # Dosya indirme linki oluşturuluyor
+            return format_html(f'<a href="{obj.dosya.url}" target="_blank">Dosyayı İndir</a>')
+        return "Dosya Yok"
+    dosya_indirme.short_description = "Dosya"
