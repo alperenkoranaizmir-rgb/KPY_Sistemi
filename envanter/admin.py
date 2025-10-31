@@ -2,7 +2,8 @@
 
 from django.contrib import admin
 from .models import Demirbas, Zimmet
-from kpy_sistemi.admin import kpy_admin_site  # <-- 1. ADIM: Özel admin sitemizi import et
+# 1. ADIM: Özel admin sitemizi import et
+from kpy_sistemi.admin import kpy_admin_site
 
 @admin.register(Demirbas, site=kpy_admin_site) # <-- 2. ADIM: 'site=kpy_admin_site' ekle
 class DemirbasAdmin(admin.ModelAdmin):

@@ -3,14 +3,12 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import Kullanici, Gorev
-from kpy_sistemi.admin import kpy_admin_site  # <-- 1. ADIM: Özel admin sitemizi import et
+# 1. ADIM: Özel admin sitemizi import et
+from kpy_sistemi.admin import kpy_admin_site 
 
 # Django'nun varsayılan UserAdmin formunu genişleterek kendi modelimizi kullanıyoruz.
 class CustomUserAdmin(UserAdmin):
     model = Kullanici
-    # Admin panelinde kullanıcı eklerken/düzenlerken hangi alanların görüneceğini belirtiyoruz.
-    # 'projeler' alanını (ProjeYetkisi üzerinden) buraya eklemiyoruz
-    # çünkü onu Proje üzerinden (inline) yönetmek daha mantıklı.
     fieldsets = UserAdmin.fieldsets + (
         ('Şirket Bilgileri', {'fields': ('departman', 'unvan', 'telefon')}),
     )
@@ -28,5 +26,5 @@ class GorevAdmin(admin.ModelAdmin):
     list_filter = ('durum', 'proje', 'atanan_kullanici', 'son_tarih')
     search_fields = ('baslik', 'aciklama', 'atanan_kullanici__username', 'proje__proje_adi')
 
-# Kullanıcı modelimizi özel admin arayüzü ile birlikte özel sitemize kaydediyoruz.
+# 3. ADIM: Modeli varsayılan 'admin.site' yerine 'kpy_admin_site' ile kaydet
 kpy_admin_site.register(Kullanici, CustomUserAdmin)
