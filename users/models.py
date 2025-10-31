@@ -8,7 +8,7 @@ class Kullanici(AbstractUser):
     Sistemin AUTH_USER_MODEL'i. Django'nun varsayılan kullanıcı modelini genişletir.
     Ekstra personel bilgilerini burada tutuyoruz.
     """
-    # Varsayılan alanlar (username, email, first_name, last_name, is_active, is_staff vb.) AbstractUser'dan gelir.
+    # Varsayılan alanlar (username, email, first_name, last_name, is_active, is-staff vb.) AbstractUser'dan gelir.
     
     telefon = models.CharField(max_length=20, blank=True, null=True, verbose_name="Telefon Numarası")
     
@@ -47,6 +47,7 @@ class Kullanici(AbstractUser):
 class Gorev(models.Model):
     """
     Kullanıcılara (Personellere) atanan projeyle ilgili görevlerin takibi.
+    İş akışı, alt görev ve bağımlılık takibi için geliştirildi.
     """
     class OncelikSeviyesi(models.TextChoices):
         ACIL = 'ACIL', 'Acil'
@@ -58,6 +59,7 @@ class Gorev(models.Model):
         YENI = 'YENI', 'Yeni'
         DEVAM_EDIYOR = 'DEVAM_EDIYOR', 'Devam Ediyor'
         BEKLEMEDE = 'BEKLEMEDE', 'Beklemede'
+        GOZDEN_GECIRILIYOR = 'GOZDEN_GECIRILIYOR', 'Gözden Geçiriliyor' # Yeni durum
         TAMAMLANDI = 'TAMAMLANDI', 'Tamamlandı'
         IPTAL_EDILDI = 'IPTAL_EDILDI', 'İptal Edildi'
 
@@ -65,11 +67,41 @@ class Gorev(models.Model):
     baslik = models.CharField(max_length=255, verbose_name="Görev Başlığı")
     aciklama = models.TextField(verbose_name="Görev Açıklaması")
     
+    # ---------------------------
+    # PROJE YÖNETİMİ ÖZELLİKLERİ
+    # ---------------------------
+    
+    # Alt Görev Hiyerarşisi (Self-Referential ForeignKey)
+    ust_gorev = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name='alt_gorevler', # Alt görevlere erişim
+        verbose_name="Üst Görev (Ana Görev)"
+    )
+    
+    # Görev Bağımlılıkları (Bu görev, tamamlanması için hangi görevlerin bitmesini bekliyor?)
+    bagimli_oldugu_gorevler = models.ManyToManyField(
+        'self',
+        symmetrical=False, # Bağımlılık tek yönlüdür (A -> B)
+        blank=True,
+        related_name='bu_goreve_bagimli_olanlar', # Bu görevin tamamlanmasını bekleyen diğer görevler
+        verbose_name="Bağımlı Olduğu Görevler"
+    )
+    
     # İlişkiler
+    olusturan_personel = models.ForeignKey( # Yeni Eklendi
+        Kullanici,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='olusturulan_gorevler',
+        verbose_name="Görevi Oluşturan"
+    )
+    
     atanan_personel = models.ForeignKey(
         Kullanici, 
         on_delete=models.PROTECT, 
-        related_name='gorevler',
+        related_name='atanan_gorevler', # Related name çakışmasını önlemek için güncellendi
         verbose_name="Atanan Personel"
     )
     
@@ -84,11 +116,11 @@ class Gorev(models.Model):
         Malik,
         on_delete=models.SET_NULL,
         blank=True, null=True,
-        related_name='gorevleri', # Çakışmaları önlemek için related_name eklendi
+        related_name='gorevleri',
         verbose_name="İlgili Malik (Opsiyonel)"
     )
 
-    # Durum ve Tarihler
+    # Durum, Tarihler ve Süreç Takibi
     oncelik = models.CharField(
         max_length=20,
         choices=OncelikSeviyesi.choices,
@@ -97,10 +129,17 @@ class Gorev(models.Model):
     )
     
     durum = models.CharField(
-        max_length=20,
+        max_length=50, # Boyut güncellendi (GOZDEN_GECIRILIYOR için)
         choices=Durum.choices,
         default=Durum.YENI,
         verbose_name="Durum"
+    )
+    
+    tahmini_sure_saat = models.DecimalField( # Yeni Eklendi: WBS/İş yükü planlaması için
+        max_digits=5,
+        decimal_places=2,
+        blank=True, null=True,
+        verbose_name="Tahmini Süre (Saat)"
     )
     
     son_teslim_tarihi = models.DateField(
@@ -109,13 +148,20 @@ class Gorev(models.Model):
         verbose_name="Son Teslim Tarihi"
     )
     
+    tamamlanma_tarihi = models.DateTimeField( # Yeni Eklendi: Kapanış için
+        blank=True, 
+        null=True, 
+        verbose_name="Tamamlanma Tarihi"
+    )
+    
     olusturulma_tarihi = models.DateTimeField(auto_now_add=True)
     guncellenme_tarihi = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.proje.proje_adi} - {self.baslik} ({self.get_durum_display()})"
+        # Proje adını köşeli parantezde gösterme formatı güncellendi
+        return f"[{self.proje.proje_adi}] {self.baslik} - ({self.get_durum_display()})"
 
     class Meta:
-        verbose_name = "Personel Görevi"
-        verbose_name_plural = "Personel Görevleri"
+        verbose_name = "Personel Görevi (İş Akışı)"
+        verbose_name_plural = "Personel Görevleri (İş Akışları)"
         ordering = ['durum', 'son_teslim_tarihi']

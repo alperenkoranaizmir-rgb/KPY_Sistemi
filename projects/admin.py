@@ -1,240 +1,231 @@
 from django.contrib import admin
-from django.utils.html import format_html
-# DÜZELTME: Count import edildi
-from django.db.models import Sum, Count
+from django.db.models import Sum
+
+# Kendi modellerimiz
 from .models import (
-    Proje, ProjeYetkisi, Malik, BagimsizBolum, Hisse, 
-    GorusmeKaydi, Evrak
+    Proje, 
+    ProjeYetkisi, 
+    Malik, 
+    BagimsizBolum, 
+    Hisse, 
+    GorusmeKaydi, 
+    Evrak
 )
 
-# KRİTİK EKLEME: Finance uygulamasından inline sınıfları ve Maliyet modelini import edin
-from finance.admin import ButceInline, MaliyetInline
-from finance.models import Maliyet
+# Harici uygulamalardan içe aktarılan Inline sınıfları
+# Finance uygulaması (Daha önce finance/admin.py'de tanımlandı)
+from finance.admin import ButceInline, MaliyetInline 
+# Users uygulaması
+from users.models import Gorev
+# Envanter uygulaması
+from envanter.models import Envanter
+# Saha uygulaması
+from saha.models import TahliyeTakibi 
 
 
-# ----------------------------------------------------------------------
-# INLINES
-# ----------------------------------------------------------------------
+# -----------------------------------------------------------------
+# INLINE SINIFLARI (İç Yapı)
+# -----------------------------------------------------------------
 
 class ProjeYetkisiInline(admin.TabularInline):
     model = ProjeYetkisi
-    extra = 1
-    raw_id_fields = ('kullanici',)
-    verbose_name = "Yetkili Kullanıcı"
-    verbose_name_plural = "Proje Yetkilileri"
+    extra = 0
+    fields = ('kullanici', 'rol')
+    autocomplete_fields = ('kullanici',)
+
+
+class GorusmeKaydiInline(admin.TabularInline):
+    model = GorusmeKaydi
+    extra = 0
+    fields = (
+        'malik', 
+        'gorusme_tarihi', 
+        'gorusme_sonucu', 
+        'gorusmeyi_yapan_personel', 
+        'direnc_nedeni'
+    )
+    autocomplete_fields = ('malik', 'gorusmeyi_yapan_personel')
+    date_hierarchy = 'gorusme_tarihi'
+    
+
+class EvrakInline(admin.TabularInline):
+    model = Evrak
+    extra = 0
+    fields = ('evrak_adi', 'evrak_tipi', 'dosya', 'malik', 'aktif_surum_mu')
+    autocomplete_fields = ('malik', 'bagimsiz_bolum', 'hisse')
+    # Tek seferde çok fazla evrak yüklemeyi önlemek için
+    max_num = 5
 
 
 class HisseInline(admin.TabularInline):
+    """Malik formunda hisseleri göstermek için kullanılır."""
     model = Hisse
     extra = 0
-    raw_id_fields = ('bagimsiz_bolum', 'malik') 
-    fields = ('malik', 'hisse_orani_pay', 'hisse_orani_payda', 'durum', 'imza_tarihi')
-    readonly_fields = ('arsa_payi_hesapla',)
-    
-    def arsa_payi_hesapla(self, obj):
-        # Modeldeki alan isimlerine göre güncellendi.
-        if obj.bagimsiz_bolum and obj.bagimsiz_bolum.arsa_payi and obj.bagimsiz_bolum.arsa_paydasi and obj.hisse_orani_pay and obj.hisse_orani_payda:
-            payi = obj.bagimsiz_bolum.arsa_payi
-            paydasi = obj.bagimsiz_bolum.arsa_paydasi
-            
-            # Hissenin Arsa Payı * Hisse Oranı = Toplam Arsa Payı
-            arsa_payi_degeri = (payi / paydasi) if paydasi else 0
-            hisse_oran_degeri = obj.hisse_orani_pay / obj.hisse_orani_payda if obj.hisse_orani_payda else 0
-            
-            toplam_arsa_payi = arsa_payi_degeri * hisse_oran_degeri
-
-            return format_html(f"**{toplam_arsa_payi * 100:.2f}%**")
-        return "-"
-    arsa_payi_hesapla.short_description = "Hisseye Düşen Arsa Payı (%)"
+    fields = ('bagimsiz_bolum', 'hisse_orani_pay', 'hisse_orani_payda', 'durum', 'imza_tarihi')
+    autocomplete_fields = ('bagimsiz_bolum',)
 
 
 class MalikInline(admin.TabularInline):
+    """Proje formunda malikleri göstermek için kullanılır."""
     model = Malik
     extra = 0
-    fields = ('ad_soyad', 'telefon', 'e_posta', 'adres')
-    verbose_name = "Malik Bilgisi"
-    verbose_name_plural = "Malikler"
+    fields = ('ad', 'soyad', 'tc_kimlik_no', 'telefon_1', 'email')
+    search_fields = ('ad', 'soyad', 'tc_kimlik_no')
+    # Malik detayında hisseleri göstermek için Malik'i ayrı bir admin sınıfında tutmak daha iyidir, 
+    # ancak burada temel listeleme için tutulmuştur.
 
 
-# ----------------------------------------------------------------------
-# ADMINS
-# ----------------------------------------------------------------------
+# -----------------------------------------------------------------
+# YENİ UYGULAMA INLINE SINIFLARI (Projeye Bağlantı)
+# -----------------------------------------------------------------
+
+class GorevInline(admin.TabularInline):
+    """Proje ile ilgili görevleri göstermek için."""
+    model = Gorev
+    extra = 0
+    fields = ('baslik', 'atanan_personel', 'durum', 'son_teslim_tarihi', 'oncelik')
+    autocomplete_fields = ('atanan_personel',)
+
+
+class EnvanterInline(admin.TabularInline):
+    """Proje için zimmetli/kullanılan envanterleri göstermek için."""
+    model = Envanter
+    extra = 0
+    fields = ('ad', 'seri_no', 'kategori', 'durum', 'sorumlu_personel', 'edinme_maliyeti')
+    autocomplete_fields = ('sorumlu_personel', 'kategori')
+    verbose_name_plural = "Projeye Tahsis Edilen Envanterler"
+
+
+class TahliyeTakibiInline(admin.TabularInline):
+    """Proje içindeki bağımsız bölümlerin tahliye durumunu göstermek için."""
+    model = TahliyeTakibi
+    extra = 0
+    fields = ('bagimsiz_bolum', 'durum', 'planlanan_tahliye_tarihi', 'gerceklesen_tahliye_tarihi')
+    autocomplete_fields = ('bagimsiz_bolum',)
+    verbose_name_plural = "Tahliye Süreçleri"
+
+
+# -----------------------------------------------------------------
+# PROJE ANA ADMİN
+# -----------------------------------------------------------------
 
 @admin.register(Proje)
 class ProjeAdmin(admin.ModelAdmin):
-    # DÜZELTME: list_display modeldeki alanları kullanıyor
     list_display = (
-        'proje_adi', 'il', 'ilce', 'aktif_mi', 'toplam_malik_sayisi', 
-        'imzali_arsa_payi_gorunumu', 'toplam_butce_gorunumu'
+        'proje_adi', 
+        'aktif_mi', 
+        'il', 
+        'cached_imza_arsa_payi_display',
+        'toplam_butce_display',
+        'gerceklesen_maliyet_display', # Yeni Metot
+        'olusturulma_tarihi'
     )
-    # DÜZELTME: list_filter modeldeki alanları kullanıyor
     list_filter = ('aktif_mi', 'il', 'ilce')
-    # DÜZELTME: search_fields modeldeki alanları kullanıyor
-    search_fields = ('proje_adi', 'ada_parsel', 'il', 'ilce')
-    # KRİTİK DÜZELTME: Bütçe ve Maliyet Inline'ları eklendi
-    inlines = [ProjeYetkisiInline, ButceInline, MaliyetInline]
+    search_fields = ('proje_adi', 'il', 'ilce', 'mahalle', 'ada_parsel')
+    date_hierarchy = 'olusturulma_tarihi'
     
-    # Detay sayfası alanları
     fieldsets = (
-        (None, {
-            # DÜZELTME: fieldsets modeldeki alanları kullanıyor
-            'fields': ('proje_adi', 'ada_parsel', 'aktif_mi', 'proje_amaci', 'aciklama')
+        ('Proje Künyesi ve Konumu', {
+            'fields': (
+                'proje_adi', 
+                'aktif_mi', 
+                'aciklama', 
+                'proje_amaci', 
+                ('il', 'ilce', 'mahalle'), 
+                'adres', 
+                'ada_parsel'
+            ),
         }),
-        ('Konum Bilgileri', {
-            # DÜZELTME: fieldsets modeldeki alanları kullanıyor
-            'fields': ('il', 'ilce', 'mahalle', 'adres')
+        ('Kentsel Dönüşüm Hesaplamaları', {
+            'fields': (
+                'cached_toplam_malik_sayisi', 
+                'cached_imza_arsa_payi', 
+                'arsa_paydasi_ortak'
+            ),
         }),
-        ('Finansal ve İstatistiksel Bilgiler (Otomatik)', {
-            # DÜZELTME: toplam_butce_gorunumu yerine toplam_butce alanı kullanıldı, cached alanlar için metodlar kullanıldı.
-            'fields': ('toplam_butce', 'toplam_malik_sayisi', 'imzali_arsa_payi_gorunumu', 'arsa_paydasi_ortak'),
-            'classes': ('collapse',)
+        ('Finansal Özet', {
+            'fields': (
+                'toplam_butce', 
+            ),
         }),
     )
-    
-    # DÜZELTME: readonly_fields modeldeki metotları ve alanları kullanıyor.
-    readonly_fields = ('toplam_malik_sayisi', 'imzali_arsa_payi_gorunumu', 'toplam_butce_gorunumu', 'arsa_paydasi_ortak')
 
-    def save_model(self, request, obj, form, change):
-        # Proje Yetkisi atamadan önce modelin kaydedilmesi
-        super().save_model(request, obj, form, change)
+    # Hesaplanan alanları readonly yapıyoruz
+    readonly_fields = (
+        'cached_toplam_malik_sayisi', 
+        'cached_imza_arsa_payi',
+    )
 
-    # KRİTİK EKLEME: Maliyet kaydını yapan personeli otomatik atama
-    def save_formset(self, request, form, formset, change):
-        if formset.model == Maliyet:
-            # Maliyet modeline ait inline'ları yakala
-            instances = formset.save(commit=False)
-            for instance in instances:
-                # Sadece yeni oluşturulan veya kullanıcı bilgisi boş olan kayıtlara ata
-                if not instance.pk or not instance.kaydi_yapan_personel_id: 
-                    instance.kaydi_yapan_personel = request.user
-                instance.save()
-            formset.save_m2m()
-        else:
-            super().save_formset(request, form, formset, change)
-        
-    def imzali_arsa_payi_gorunumu(self, obj):
-        # Yüzdelik gösterim
-        return format_html(f"**%{obj.cached_imza_arsa_payi:.2f}**")
-    imzali_arsa_payi_gorunumu.short_description = "İmzalı Arsa Payı (%)"
+    # Entegrasyonlar (Inline'lar)
+    inlines = [
+        ProjeYetkisiInline, 
+        ButceInline,        # Finance
+        MaliyetInline,      # Finance
+        GorevInline,        # Users
+        TahliyeTakibiInline, # Saha
+        MalikInline,        # Projects/CRM
+        EvrakInline,        # Projects/DMS
+    ]
 
-    def toplam_butce_gorunumu(self, obj):
-        # Sadece formatlama için kullanılan metot
-        return format_html(f"<strong>{obj.toplam_butce:,.2f} TL</strong>")
-    toplam_butce_gorunumu.short_description = "Planlanan Toplam Bütçe"
-    
-    # DÜZELTME: `cached_toplam_malik_sayisi` alanını kullanmak için metot
-    def toplam_malik_sayisi(self, obj):
-        # Artık cachelenmiş alanı kullanıyoruz
-        return obj.cached_toplam_malik_sayisi
-    toplam_malik_sayisi.short_description = "Malik Sayısı"
-    
-    # Change list için kolon sıralaması (Düzeltildi)
-    toplam_butce_gorunumu.admin_order_field = 'toplam_butce'
-    imzali_arsa_payi_gorunumu.admin_order_field = 'cached_imza_arsa_payi'
-    toplam_malik_sayisi.admin_order_field = 'cached_toplam_malik_sayisi'
+    # Ekran Metotları
+    def cached_imza_arsa_payi_display(self, obj):
+        return f"%{obj.cached_imza_arsa_payi:.2f}"
+    cached_imza_arsa_payi_display.short_description = "İmza Payı (%)"
+
+    def toplam_butce_display(self, obj):
+        return f"{obj.toplam_butce:,.2f} TL"
+    toplam_butce_display.short_description = "Planlanan Bütçe"
+
+    def gerceklesen_maliyet_display(self, obj):
+        """Gerçekleşen toplam maliyeti hesaplar ve gösterir."""
+        # Django'nun aggregate fonksiyonu ile ilgili projeye ait Maliyet modelinden tutarlar toplanır.
+        toplam = obj.maliyetler.aggregate(Sum('tutar'))['tutar__sum'] or 0.00
+        return f"{toplam:,.2f} TL"
+    gerceklesen_maliyet_display.short_description = "Gerçekleşen Maliyet"
+
+
+# -----------------------------------------------------------------
+# DİĞER PROJE MODELLERİNİN ADMİN KAYITLARI
+# -----------------------------------------------------------------
 
 @admin.register(Malik)
 class MalikAdmin(admin.ModelAdmin):
-    # DÜZELTME: list_display modeldeki metotları kullanıyor
-    list_display = ('proje', 'ad_soyad', 'telefon', 'e_posta', 'tc_kimlik_no')
-    # DÜZELTME: list_filter modeldeki alanı kullanıyor
+    list_display = ('ad_soyad', 'proje', 'tc_kimlik_no', 'telefon', 'e_posta', 'cinsiyet')
     list_filter = ('proje', 'cinsiyet')
-    # DÜZELTME: search_fields modeldeki alanları kullanıyor
-    search_fields = ('ad', 'soyad', 'tc_kimlik_no', 'telefon_1', 'telefon_2', 'email')
-    inlines = [HisseInline]
-    raw_id_fields = ('proje',) 
-    
-    fieldsets = (
-        (None, {
-            # DÜZELTME: fieldsets modeldeki alanları kullanıyor
-            'fields': ('proje', ('ad', 'soyad', 'cinsiyet'), 'tc_kimlik_no', 'dogum_tarihi')
-        }),
-        ('İletişim Bilgileri', {
-            # DÜZELTME: fieldsets modeldeki alanları kullanıyor
-            'fields': ('telefon_1', 'telefon_2', 'email', 'adres')
-        }),
-    )
-    
+    search_fields = ('ad', 'soyad', 'tc_kimlik_no', 'telefon_1', 'email')
+    autocomplete_fields = ('proje',)
+    inlines = [HisseInline, GorusmeKaydiInline]
+
+
 @admin.register(BagimsizBolum)
 class BagimsizBolumAdmin(admin.ModelAdmin):
-    # DÜZELTME: list_display modeldeki metotları kullanıyor
-    list_display = ('proje', 'bolum_no', 'kullanim_sekli', 'arsa_payi_oran_gorunumu')
-    # DÜZELTME: list_filter modeldeki alanı kullanıyor
+    list_display = ('bolum_no', 'proje', 'nitelik', 'ada', 'parsel', 'tapu_alani_m2', 'arsa_payi_oran_gorunumu')
     list_filter = ('proje', 'nitelik')
-    # DÜZELTME: search_fields modeldeki alanları kullanıyor
-    search_fields = ('bolum_no', 'nitelik', 'ada', 'parsel')
-    raw_id_fields = ('proje',)
+    search_fields = ('bolum_no', 'ada', 'parsel')
+    autocomplete_fields = ('proje',)
 
 
 @admin.register(Hisse)
 class HisseAdmin(admin.ModelAdmin):
-    # DÜZELTME: list_display modeldeki metodu ve yeni alanı kullanıyor
-    list_display = ('malik', 'bagimsiz_bolum', 'hisse_oran_gorunumu', 'durum', 'imza_tarihi', 'son_gorusme_tarihi')
-    list_filter = ('durum', 'bagimsiz_bolum__proje')
+    list_display = ('malik', 'bagimsiz_bolum', 'hisse_oran_gorunumu', 'durum', 'imza_tarihi')
+    list_filter = ('durum', 'proje')
     search_fields = ('malik__ad', 'malik__soyad', 'bagimsiz_bolum__bolum_no')
-    raw_id_fields = ('malik', 'bagimsiz_bolum')
+    autocomplete_fields = ('proje', 'malik', 'bagimsiz_bolum')
 
-    def son_gorusme_tarihi(self, obj):
-        # Son görüşme kaydını çekiyoruz
-        # Düzeltme: Modeldeki related_name'ler kullanıldığı için gorusmekaydi_set kullanılır.
-        son_gorusme = obj.malik.gorusmekaydi_set.order_by('-gorusme_tarihi').first() 
-        return son_gorusme.gorusme_tarihi if son_gorusme else 'Görüşme Yok'
-    son_gorusme_tarihi.short_description = "Son Görüşme"
-    
+
 @admin.register(GorusmeKaydi)
 class GorusmeKaydiAdmin(admin.ModelAdmin):
-    # DÜZELTME: list_display modeldeki metotları kullanıyor
-    list_display = ('malik', 'gorusme_tarihi', 'gorusme_sonucu', 'gorusmeyi_yapan', 'direnc_nedeni')
-    # DÜZELTME: list_filter modeldeki alanları kullanıyor
-    list_filter = ('gorusme_sonucu', 'gorusme_tarihi', 'gorusmeyi_yapan_personel', 'direnc_nedeni')
-    # DÜZELTME: search_fields modeldeki alanları kullanıyor
+    list_display = ('malik', 'proje', 'gorusme_tarihi', 'gorusme_sonucu', 'gorusmeyi_yapan')
+    list_filter = ('proje', 'gorusme_sonucu', 'gorusmeyi_yapan_personel')
     search_fields = ('malik__ad', 'malik__soyad', 'gorusme_ozeti')
-    # DÜZELTME: raw_id_fields modeldeki alanı kullanıyor
-    raw_id_fields = ('malik', 'gorusmeyi_yapan_personel')
-    
-    fieldsets = (
-        (None, {
-            # DÜZELTME: fieldsets modeldeki alanları kullanıyor
-            'fields': ('malik', 'proje', 'gorusme_tarihi', 'gorusmeyi_yapan_personel')
-        }),
-        ('Görüşme Sonucu', {
-            # DÜZELTME: fieldsets modeldeki alanları kullanıyor
-            'fields': ('gorusme_sonucu', 'direnc_nedeni', 'gorusme_ozeti')
-        }),
-    )
+    date_hierarchy = 'gorusme_tarihi'
+    autocomplete_fields = ('proje', 'malik', 'gorusmeyi_yapan_personel')
+
 
 @admin.register(Evrak)
 class EvrakAdmin(admin.ModelAdmin):
-    # DÜZELTME: list_display modeldeki metodu kullanıyor
-    list_display = ('proje', 'evrak_adi', 'evrak_tipi', 'yuklenme_tarihi', 'dosya_indirme')
-    list_filter = ('evrak_tipi', 'proje')
-    # DÜZELTME: search_fields modeldeki alanları kullanıyor
+    list_display = ('evrak_adi', 'evrak_tipi', 'proje', 'malik', 'yuklenme_tarihi', 'aktif_surum_mu')
+    list_filter = ('evrak_tipi', 'proje', 'aktif_surum_mu')
     search_fields = ('evrak_adi', 'aciklama', 'text_content')
-    # DÜZELTME: raw_id_fields hisse eklendi
-    raw_id_fields = ('proje', 'bagimsiz_bolum', 'malik', 'hisse')
-    
-    def dosya_indirme(self, obj):
-        if obj.dosya:
-            # Dosya indirme linki oluşturuluyor
-            return format_html(f'<a href="{obj.dosya.url}" target="_blank">Dosyayı İndir</a>')
-        return "Dosya Yok"
-    dosya_indirme.short_description = "Dosya"
-
-    # Admin formunda tüm alanları göstermek için fieldsets eklendi
-    fieldsets = (
-        (None, {
-            'fields': ('proje', 'evrak_adi', 'evrak_tipi', 'dosya', 'aciklama')
-        }),
-        ('İlişkili Kayıtlar', {
-            'fields': ('malik', 'hisse', 'bagimsiz_bolum')
-        }),
-        ('Sürüm Kontrolü', {
-            'fields': ('aktif_surum_mu', 'onceki_surum'),
-            'classes': ('collapse',)
-        }),
-        ('OCR İçeriği', {
-            'fields': ('text_content',),
-            'classes': ('collapse',)
-        }),
-    )
-    readonly_fields = ('text_content',)
+    autocomplete_fields = ('proje', 'malik', 'hisse', 'bagimsiz_bolum', 'onceki_surum')
+    date_hierarchy = 'olusturulma_tarihi'

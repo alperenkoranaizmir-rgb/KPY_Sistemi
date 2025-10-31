@@ -1,84 +1,133 @@
 from django.contrib import admin
-# Admin'in temel User model yönetimini ve formunu kullanmak için import edin
-from django.contrib.auth.admin import UserAdmin 
+from django.contrib.auth.admin import UserAdmin
 from .models import Kullanici, Gorev
 
 
-# 1. Kullanici Yönetimi
-# Django'nun varsayılan UserAdmin'ini Kullanici modelimiz için kullanıyoruz.
-@admin.register(Kullanici)
-class KullaniciAdmin(UserAdmin):
-    
-    # UserAdmin'in default fieldsets'ini geçersiz kılarak ekstra alanları ekliyoruz.
-    # Bu, şifre ve kritik alanların güvenli bir şekilde yönetilmesini sağlar.
-    def get_fieldsets(self, request, obj=None):
-        if not obj:
-            # Yeni kullanıcı oluştururken
-            return self.add_fieldsets
-        
-        # Mevcut kullanıcıyı düzenlerken
-        # Kullanicinin özel alanları eklenmiş fieldsets tanımı
-        fieldsets = (
-            (None, {'fields': ('username', 'password')}),
-            ('Kişisel Bilgiler', {'fields': ('first_name', 'last_name', 'email', 'telefon', 'profil_fotografi', 'uzmanlik_alani', 'ise_baslangic_tarihi')}),
-            ('İzinler', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-            ('Önemli Tarihler', {'fields': ('last_login', 'date_joined')}),
-        )
-        return fieldsets
-
-    # Yeni kullanıcı ekleme formu için alanlar (UserAdmin'den gelir)
-    add_fieldsets = UserAdmin.add_fieldsets + (
+# Kullanici Admin Paneli Özelleştirmesi
+class CustomKullaniciAdmin(UserAdmin):
+    """
+    Kullanici (Personel) modelini Django Admin panelinde özelleştirir.
+    """
+    # Varsayılan UserAdmin fieldsets yapısını kullanıp ek alanlarımızı dahil ediyoruz.
+    fieldsets = UserAdmin.fieldsets + (
         ('Ek Personel Bilgileri', {
-            'fields': ('telefon', 'uzmanlik_alani', 'profil_fotografi', 'ise_baslangic_tarihi'),
-            'classes': ('wide',),
+            'fields': (
+                'telefon', 
+                'uzmanlik_alani', 
+                'profil_fotografi', 
+                'ise_baslangic_tarihi'
+            ),
         }),
     )
 
-    # Detay sayfasında gösterilecek alanlar
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active', 'uzmanlik_alani')
-    # Filtreleme
-    list_filter = ('is_staff', 'is_superuser', 'is_active', 'uzmanlik_alani')
-    # Arama
-    search_fields = ('username', 'first_name', 'last_name', 'email', 'telefon')
+    # Kullanıcı listeleme sayfasında gösterilecek alanlar
+    list_display = UserAdmin.list_display + (
+        'telefon', 
+        'uzmanlik_alani', 
+        'ise_baslangic_tarihi'
+    )
     
+    # Arama yapılabilecek alanlar
+    search_fields = (
+        'username', 
+        'first_name', 
+        'last_name', 
+        'email', 
+        'uzmanlik_alani',
+        'telefon'
+    )
+    
+    # Filtrelenebilecek alanlar
+    list_filter = UserAdmin.list_filter + (
+        'uzmanlik_alani', 
+        'ise_baslangic_tarihi'
+    )
 
-# 2. Görev Yönetimi
-@admin.register(Gorev)
+# -----------------------------------------------------------------
+# GÖREV YÖNETİMİ ADMIN
+# -----------------------------------------------------------------
+
 class GorevAdmin(admin.ModelAdmin):
-    # DÜZELTME: list_display, Gorev modelinin görünümünü iyileştirmek için güncellendi.
+    """
+    Gorev modelini (İş Akışı) Django Admin panelinde özelleştirir.
+    """
+    
+    # Listeleme görünümü
     list_display = (
         'baslik', 
         'proje', 
-        'atanan_personel', 
+        'atanan_personel',
+        'get_ust_gorev_baslik', # Yeni metot eklendi
         'durum', 
         'oncelik', 
-        'son_teslim_tarihi', 
-        'olusturulma_tarihi'
+        'son_teslim_tarihi',
+        'olusturulma_tarihi',
+        'tamamlanma_tarihi',
     )
-    # DÜZELTME: list_filter, görev durumuna ve önceliğe göre filtrelemeyi kolaylaştırır.
-    list_filter = ('durum', 'oncelik', 'proje', 'atanan_personel', 'son_teslim_tarihi')
-    # Arama
-    search_fields = ('baslik', 'aciklama', 'proje__proje_adi', 'atanan_personel__first_name', 'atanan_personel__last_name')
-    # Tarih hiyerarşisi
-    date_hierarchy = 'son_teslim_tarihi'
     
-    # KRİTİK EKLEME: Büyük verilerde hızlı arama için raw_id_fields kullanıldı.
-    raw_id_fields = ('atanan_personel', 'proje', 'ilgili_malik')
+    # Filtreler
+    list_filter = (
+        'durum', 
+        'oncelik', 
+        'proje', 
+        'atanan_personel', 
+        'olusturulma_tarihi',
+        'son_teslim_tarihi',
+    )
     
-    # Detay sayfasında düzenli bir görünüm için fieldsets
+    # Arama alanları
+    search_fields = (
+        'baslik', 
+        'aciklama', 
+        'proje__proje_adi', 
+        'atanan_personel__username',
+        'atanan_personel__first_name',
+        'atanan_personel__last_name',
+    )
+    
+    # Admin formundaki alanların gruplanması ve düzenlenmesi
     fieldsets = (
-        (None, {
-            'fields': ('baslik', 'aciklama', 'proje', 'ilgili_malik')
+        ('Görev Temel Bilgileri', {
+            'fields': ('proje', 'ilgili_malik', 'baslik', 'aciklama'),
         }),
-        ('Atama ve Zamanlama', {
-            'fields': ('atanan_personel', 'son_teslim_tarihi')
+        ('Atama ve Öncelik', {
+            'fields': (
+                'atanan_personel', 
+                'olusturan_personel', # Yeni
+                'oncelik', 
+                'tahmini_sure_saat', # Yeni
+                'son_teslim_tarihi',
+            ),
         }),
-        ('Durum ve Öncelik', {
-            'fields': ('durum', 'oncelik')
+        ('İş Akışı ve Hiyerarşi', {
+            'fields': (
+                'durum', 
+                'ust_gorev', # Yeni (Hiyerarşi)
+                'bagimli_oldugu_gorevler', # Yeni (Bağımlılık)
+                'tamamlanma_tarihi', # Yeni
+            ),
         }),
     )
+
+    # ManyToMany ilişkileri için yatay filtreleme arayüzü
+    filter_horizontal = ('bagimli_oldugu_gorevler',)
     
-    # Otomatik oluşturulan ve güncellenen alanlar gizlenmeli
-    readonly_fields = ('olusturulma_tarihi', 'guncellenme_tarihi') 
-    
-    ordering = ['durum', '-oncelik', 'son_teslim_tarihi']
+    # ForeignKey alanları için arama kutusu (performans için önemlidir)
+    autocomplete_fields = [
+        'proje', 
+        'atanan_personel', 
+        'olusturan_personel',
+        'ilgili_malik',
+        'ust_gorev',
+    ]
+
+    # Ekstra metotlar (list_display için)
+    def get_ust_gorev_baslik(self, obj):
+        """Üst görevin sadece başlığını gösterir."""
+        return obj.ust_gorev.baslik if obj.ust_gorev else '-'
+    get_ust_gorev_baslik.short_description = 'Üst Görev'
+
+
+# Admin paneline modelleri kaydetme
+admin.site.register(Kullanici, CustomKullaniciAdmin)
+admin.site.register(Gorev, GorevAdmin)
