@@ -224,25 +224,18 @@ JAZZMIN_UI_TWEAKS = {
 }
 
 
+# kpy_sistemi/settings.py dosyasındaki JAZZMIN_SETTINGS bölümü
+# (Yaklaşık 208. satırdan itibaren)
+
 JAZZMIN_SETTINGS = {
-    # title of the window
-    "site_title": "KPY Yönetim Sistemi",
+    # ... (Diğer ayarlar aynı kalır)
 
-    # Title on the brand (1st logo)
-    "site_header": "KPY",
-
-    # Welcome to the Django admin, brand on the login screen
-    "welcome_sign": "KentselProjeYonetim Sistemi'ne Hoş Geldiniz",
-
-    # Copyright on the footer
-    "copyright": "KPY Sistemi | Tüm Hakları Saklıdır",
-    
     # Custom icons for the side menu apps/models
     "icons": {
         "auth": "fas fa-users-cog",
         "auth.group": "fas fa-users",
         "users.Kullanici": "fas fa-user-tie",
-        "users.Gorev": "fas fa-tasks", # Görev için ikon
+        "users.Gorev": "fas fa-tasks",
         "projects.Proje": "fas fa-city",
         "projects.Malik": "fas fa-handshake",
         "projects.Hisse": "fas fa-file-signature",
@@ -251,18 +244,22 @@ JAZZMIN_SETTINGS = {
         "projects.GorusmeKaydi": "fas fa-comments",
         "projects.ProjeYetkisi": "fas fa-user-shield",
         "finance.MaliyetKalemi": "fas fa-tags",
-        # "finance.Butce": "fas fa-cash-register", # Bu model olmadığı için ikonuna da gerek yok
         "finance.Maliyet": "fas fa-dollar-sign",
         "envanter.Demirbas": "fas fa-laptop",
         "envanter.Zimmet": "fas fa-exchange-alt",
+        
+        # YENİ EKLENEN/VARSAYILAN MODÜL İKONLARI (Saha Modülü için planlanan modeller)
+        "saha.GunlukRapor": "fas fa-clipboard-list",
+        "saha.TahliyeTakibi": "fas fa-house-damage",
+        
     },
 
     # Ana Menü Yapısı (Modelleri uygulamalara göre sıralar)
     "order_with_respect_to": [
-        "projects", "finance", "envanter", "users", "auth",
+        "projects", "finance", "saha", "envanter", "users", "auth", # 'saha' eklendi
     ],
 
-    # Sol Menü (Side Menu) Yapısı (PROGRAM.MD'deki 4. Maddeye göre)
+    # Sol Menü (Side Menu) Yapısı (Eksik menüler eklendi, sıralama güncellendi)
     "menu": [
         # 1. Ana Panel (Dashboard)
         {"name": "Ana Panel", "url": "admin:index", "icon": "fas fa-home"},
@@ -281,44 +278,20 @@ JAZZMIN_SETTINGS = {
             "projects.GorusmeKaydi",
         ]},
 
-        # 4. DİJİTAL ARŞİV (DMS)
+        # 4. SAHA & İŞ YÖNETİMİ (*** EKSİK MENÜ EKLENDİ ***)
+        # README.md'deki Madde 4'e göre eklendi.
+        {"app": "saha", "name": "SAHA & İŞ YÖNETİMİ", "icon": "fas fa-hard-hat", "models": [
+            "saha.GunlukRapor",   # Lütfen bu model isimlerinin saha/models.py'de var olduğundan emin olun.
+            "saha.TahliyeTakibi", # Lütfen bu model isimlerinin saha/models.py'de var olduğundan emin olun.
+        ]},
+        
+        # 5. DİJİTAL ARŞİV (DMS)
         {"app": "projects", "name": "DİJİTAL ARŞİV (DMS)", "icon": "fas fa-file-archive", "models": [
             "projects.Evrak",
         ]},
 
-        # 5. ANALİZ & RAPORLAR (NİHAİ DÜZELTME)
-        {
-            "name": "ANALİZ & RAPORLAR", 
-            "icon": "fas fa-chart-pie", 
-            "items": [
-                {
-                    "name": "Malik Direnç Analizi", 
-                    
-                    # KRİTİK DÜZELTME: 
-                    # 'reverse_lazy' kaldırıldı. URL'nin adı (named URL)
-                    # doğrudan string olarak verildi.
-                    "url": "projects:direnc_analizi_raporu", 
-                    
-                    "icon": "fas fa-chart-bar",
-                    
-                    # KRİTİK DÜZELTME:
-                    # Bu menü öğesini sadece süper kullanıcılara (sistem yöneticilerine)
-                    # göstermek için bir yetki ekliyoruz.
-                    "permissions": ["auth.view_group"]
-                },
-
-                {
-                   'name': 'Bütçe vs. Fiili Raporu',
-                   'url': 'admin:butce_raporu',  # Adım 1'de 'name' olarak bunu verdik
-                   'icon': 'fas fa-money-check-alt',
-                   'permissions': ['auth.view_user'], # (Tüm kullanıcılar görebilsin)
-                },
-            ]
-        },
-
-        # 6. BÜTÇE & MALİYET  (*** DÜZELTİLMİŞ BÖLÜM ***)
+        # 6. BÜTÇE & MALİYET
         {"app": "finance", "name": "BÜTÇE & MALİYET", "icon": "fas fa-money-bill-wave", "models": [
-            # "finance.Butce", # <-- 404 HATASI VEREN BU SATIR KALDIRILDI
             "finance.Maliyet",
             {"model": "finance.MaliyetKalemi", "label": "Maliyet Kalemleri (Tanım)"},
         ]},
@@ -329,10 +302,60 @@ JAZZMIN_SETTINGS = {
             "envanter.Zimmet",
         ]},
         
-        # 8. SİSTEM YÖNETİMİ & YETKİLER
-        {"app": "users", "name": "SİSTEM & KULLANICI YÖNETİMİ", "icon": "fas fa-users-cog", "models": [
+        # 8. İLETİŞİM & BİLDİRİMLER (*** EKSİK MENÜ EKLENDİ - README Madde 7 ***)
+        {
+            "name": "İLETİŞİM & BİLDİRİMLER",
+            "icon": "fas fa-bell",
+            "items": [
+                {
+                   'name': 'Toplu SMS/E-Posta Gönderimi',
+                   'url': 'users:toplu_bildirim', # Custom view gerektirir
+                   'icon': 'fas fa-paper-plane',
+                   'permissions': ['auth.view_user'],
+                },
+                {
+                   'name': 'Otomasyon Yönetimi (Celery)',
+                   'url': 'admin:dogum_gunu_otomasyon', # Custom view gerektirir
+                   'icon': 'fas fa-robot',
+                   'permissions': ['auth.view_group'], 
+                },
+            ]
+        },
+        
+        # 9. ANALİZ & RAPORLAR (Menü sırası mantıksal olarak sona alındı)
+        {
+            "name": "ANALİZ & RAPORLAR", 
+            "icon": "fas fa-chart-pie", 
+            "items": [
+                {
+                    "name": "Malik Direnç Analizi", 
+                    "url": "projects:direnc_analizi_raporu", 
+                    "icon": "fas fa-chart-bar",
+                    "permissions": ["auth.view_group"]
+                },
+
+                {
+                   'name': 'Bütçe vs. Fiili Raporu',
+                   # URL adı düzeltildi.
+                   'url': 'finance:butce_vs_fiili_raporu', 
+                   'icon': 'fas fa-money-check-alt',
+                   'permissions': ['auth.view_user'], 
+                },
+                
+                # README'deki "Proje İlerleme Hunisi (Funnel)" raporu eklendi
+                {
+                    'name': 'Proje İlerleme Hunisi',
+                    'url': 'projects:ilerleme_hunisi_raporu', # Custom view gerektirir
+                    'icon': 'fas fa-stream',
+                    'permissions': ['auth.view_user'], 
+                },
+            ]
+        },
+
+        # 10. SİSTEM YÖNETİMİ & YETKİLER
+        {"app": "users", "name": "KULLANICI & YETKİ YÖNETİMİ", "icon": "fas fa-users-cog", "models": [
             "users.Kullanici",
-            "users.Gorev", # Görev Yönetimi'ni buraya taşıdık
+            "users.Gorev",
             {"model": "auth.group", "label": "Rol Grupları (Gelişmiş)"},
         ]},
     ]

@@ -1,7 +1,7 @@
 # kpy_sistemi/urls.py
 
 from django.contrib import admin
-from django.urls import path, include  # <-- 'include' fonksiyonunu ekledik
+from django.urls import path, include 
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -10,11 +10,19 @@ from kpy_sistemi.admin import kpy_admin_site
 
 urlpatterns = [
     
-    # path('admin/', admin.site.urls), # <-- ESKİ YANLIŞ SATIR
-    path('admin/', kpy_admin_site.urls), # <-- DOĞRU SATIR (Bizim özel sitemiz)
+    path('admin/', kpy_admin_site.urls), # <-- Bizim özel sitemiz
     
-    # Diğer raporların (örn: Direnç Analizi) çalışması için bu satır gerekli
+    # Raporlar için Projects URL'leri (Mevcut)
     path('projects/', include('projects.urls')), 
+    
+    # YENİ EKLENEN: Finance modülündeki raporların çalışması için
+    path('finance/', include('finance.urls')),
+    
+    # YENİ EKLENEN: Saha modülündeki iş takibi ve raporlar için
+    path('saha/', include('saha.urls')),
+    
+    # Users/İletişim modülündeki özel view'lar için (opsiyonel, views.py'den de yapılabilir)
+    path('users/', include('users.urls')), # Varsayılan olarak users url'sini de dahil edelim.
 ]
 
 # -----------------------------------------------------------------

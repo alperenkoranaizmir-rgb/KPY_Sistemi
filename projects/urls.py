@@ -1,10 +1,22 @@
+# projects/urls.py dosyanızın içeriğini bu şekilde güncelleyin
 from django.urls import path
-from . import views
+from . import views 
+from django.contrib.auth.decorators import login_required
 
-# KRİTİK DÜZELTME: Bu URL grubuna "projects" adında bir isim alanı (namespace) veriyoruz.
 app_name = 'projects'
 
 urlpatterns = [
-    # Rapor adı artık 'projects:direnc_analizi_raporu' olarak kullanılabilir.
-    path('rapor/direnc/', views.direnc_analizi_raporu, name='direnc_analizi_raporu'),
+    # Malik Direnç Analizi Raporu (Mevcut)
+    path(
+        'raporlar/direnc-analizi/', 
+        login_required(views.direnc_analizi_raporu),
+        name='direnc_analizi_raporu'
+    ),
+    # YENİ EKLENEN: Proje İlerleme Hunisi Raporu
+    path(
+        'raporlar/ilerleme-hunisi/', 
+        login_required(views.ilerleme_hunisi_raporu), 
+        name='ilerleme_hunisi_raporu'
+    ),
+    # Diğer project view'ları buraya eklenecek
 ]
