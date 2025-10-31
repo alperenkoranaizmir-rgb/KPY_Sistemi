@@ -1,4 +1,4 @@
-# finance/admin.py (TAM VE DÜZELTİLMİŞ)
+# finance/admin.py (FINAL ÇÖZÜM)
 
 from django.contrib import admin
 from .models import Maliyet, MaliyetKalemi
@@ -11,7 +11,7 @@ class MaliyetKalemiAdmin(admin.ModelAdmin):
 
 @admin.register(Maliyet, site=kpy_admin_site) 
 class MaliyetAdmin(admin.ModelAdmin):
-    # 'kalem' -> 'maliyet_kalemi' ve 'olusturulma_tarihi' -> 'tarih' olarak düzeltildi
+    # Modeldeki doğru alan adları kullanıldı
     list_display = ('proje', 'maliyet_kalemi', 'tutar', 'tarih')
     list_filter = ('proje', 'maliyet_kalemi', 'tarih')
     search_fields = ('proje__proje_adi', 'maliyet_kalemi__ad', 'aciklama')

@@ -2,9 +2,6 @@ cat <<EOT >> .gitignore
 # Sanal Ortam
 venv/
 
-# Veritabanı
-db.sqlite3
-
 # Yüklenen Dosyalar
 mediafiles/
 

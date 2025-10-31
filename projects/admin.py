@@ -1,10 +1,9 @@
-# projects/admin.py (TAM VE DÜZELTİLMİŞ)
+# projects/admin.py (FINAL ÇÖZÜM)
 
 from django.contrib import admin
 from .models import Proje, ProjeYetkisi, Malik, BagimsizBolum, Hisse, GorusmeKaydi, Evrak
 from kpy_sistemi.admin import kpy_admin_site 
 
-# Proje içindeki yetkileri inline (iç içe) göstermek için
 class ProjeYetkisiInline(admin.TabularInline):
     model = ProjeYetkisi
     extra = 1
@@ -25,22 +24,21 @@ class ProjeYetkisiAdmin(admin.ModelAdmin):
 
 @admin.register(Malik, site=kpy_admin_site)
 class MalikAdmin(admin.ModelAdmin):
-    # Modeldeki doğru alanlar kullanıldı
-    list_display = ('ad', 'soyad', 'proje', 'anlasma_durumu_choices')
-    list_filter = ('proje', 'anlasma_durumu_choices')
+    # Modeldeki doğru alan adı 'anlasma_durumu' kullanıldı
+    list_display = ('ad', 'soyad', 'proje', 'anlasma_durumu')
+    list_filter = ('proje', 'anlasma_durumu')
     search_fields = ('ad', 'soyad', 'proje__proje_adi')
 
 @admin.register(Hisse, site=kpy_admin_site)
 class HisseAdmin(admin.ModelAdmin):
-    # Modeldeki doğru alanlar kullanıldı
     list_display = ('malik', 'bagimsiz_bolum')
     list_filter = ('malik__proje',)
     search_fields = ('malik__ad', 'malik__soyad', 'bagimsiz_bolum__ada', 'bagimsiz_bolum__parsel')
 
 @admin.register(GorusmeKaydi, site=kpy_admin_site)
 class GorusmeKaydiAdmin(admin.ModelAdmin):
-    # Modeldeki doğru alanlar kullanıldı
-    list_display = ('malik', 'kullanici', 'olusturulma_tarihi', 'gorusme_sonucu', 'direnc_nedeni')
+    # Modeldeki doğru alan adları 'kullanici' ve 'tarih' kullanıldı
+    list_display = ('malik', 'kullanici', 'tarih', 'gorusme_sonucu', 'direnc_nedeni')
     list_filter = ('malik__proje', 'kullanici', 'gorusme_sonucu', 'direnc_nedeni')
     search_fields = ('malik__ad', 'malik__soyad', 'ozet')
 

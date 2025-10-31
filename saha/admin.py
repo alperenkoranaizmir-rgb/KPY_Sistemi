@@ -1,4 +1,4 @@
-# saha/admin.py (TAM VE DÜZELTİLMİŞ)
+# saha/admin.py (KOD UYUMLU OLDUĞU İÇİN DEĞİŞİKLİK YAPILMADI)
 
 from django.contrib import admin
 from .models import Taseron, SahaRaporu, TahliyeTakibi, IsTakvimiGorevi

@@ -1,4 +1,4 @@
-# envanter/admin.py (TAM VE DÜZELTİLMİŞ)
+# envanter/admin.py (FINAL DÜZELTME)
 
 from django.contrib import admin
 from .models import Demirbas, Zimmet
